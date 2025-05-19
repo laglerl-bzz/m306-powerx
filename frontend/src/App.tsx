@@ -1,4 +1,5 @@
 import { ChartComp } from "./components/chart"
+import { Card } from "./components/ui/card"
 
 function App() {
   return (
@@ -27,7 +28,22 @@ function App() {
         </ul>
       </nav >
       <div className="h-screen justify-center flex items-center">
+        <div className="w-10/12 flex flex-row gap-4">
           <ChartComp />
+          <Card className=" w-2/12">
+            {/* legend */}
+            <div className="flex flex-col justify-between p-4">
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-blue-500 mr-2" />
+                <span>Desktop</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-green-500 mr-2" />
+                <span>Mobile</span>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </>
   )

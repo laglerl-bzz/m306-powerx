@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { ChartComp } from "./components/chart"
 
 function App() {
   return (
@@ -26,8 +27,8 @@ function App() {
           </li>
         </ul>
       </nav >
-      <div className="flex flex-col items-center justify-center min-h-svh">
-        {/* <Chart/> */}
+      <div className="h-screen justify-center flex items-center">
+          <ChartComp />
       </div>
     </>
   )

@@ -1,45 +1,60 @@
+import { useState } from "react"
 import { ChartComp } from "./chart"
-import { Card } from "./ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "./ui/select"
 
-const HomePage = () => {
+export default function HomePage() {
+    const [preset, setPreset] = useState<string>("")
+
+    const handlePresetChange = (value: string) => {
+        setPreset(value)
+    }
+
     return (
-        <>
-            <div className="h-screen justify-center flex items-center">
-                <div className="w-10/12 flex flex-row gap-4">
-                    <ChartComp />
-                    <Card className=" w-2/12">
-                        <div className="flex flex-col justify-between px-4">
-                            <Select>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Theme" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="purchaseHighTariff">Purchase high tariff</SelectItem>
-                                    <SelectItem value="purchaseLowTariff">Purchase low tariff</SelectItem>
-                                    <SelectItem value="feedInHighTariff">Feed-in high tariff</SelectItem>
-                                    <SelectItem value="feedInLowTariff">Feed-in low tariff</SelectItem>
-                                    <SelectItem value="purchase">Purchase</SelectItem>
-                                    <SelectItem value="feedIn">Feed-in</SelectItem>
-                                    <SelectItem value="consumptionChart">Consumption chart</SelectItem>
-                                    <SelectItem value="meterReadingChart">Meter reading chart</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <h3 className="font-semibold text-lg mt-4 mb-2">Legende</h3>
-                            <div className="flex items-center">
-                                <div className="w-4 h-4 bg-blue-500 mr-2" />
-                                <span>Desktop</span>
+        <div className="h-screen justify-center flex items-center">
+            <div className="w-10/12 flex flex-row gap-4">
+                <ChartComp preset={preset} />
+                <Card className="w-2/12 h-full">
+                    <CardHeader>
+                        <CardTitle>Chart Options</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Select value={preset} onValueChange={handlePresetChange}>
+                            <SelectTrigger className="w-full mb-4">
+                                <SelectValue placeholder="Select Preset" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="purchaseHighTariff">Purchase high tariff</SelectItem>
+                                <SelectItem value="purchaseLowTariff">Purchase low tariff</SelectItem>
+                                <SelectItem value="feedInHighTariff">Feed-in high tariff</SelectItem>
+                                <SelectItem value="feedInLowTariff">Feed-in low tariff</SelectItem>
+                                <SelectItem value="purchase">Purchase</SelectItem>
+                                <SelectItem value="feedIn">Feed-in</SelectItem>
+                                <SelectItem value="consumptionChart">Consumption chart</SelectItem>
+                                <SelectItem value="meterReadingChart">Meter reading chart</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <div className="mt-6">
+                            <h3 className="font-semibold text-sm mb-2">Legend</h3>
+                            <div className="flex items-center mb-2">
+                                <div className="w-3 h-3 rounded-full bg-[var(--color-desktop)] mr-2" />
+                                <span className="text-sm">Desktop</span>
                             </div>
                             <div className="flex items-center">
-                                <div className="w-4 h-4 bg-green-500 mr-2" />
-                                <span>Mobile</span>
+                                <div className="w-3 h-3 rounded-full bg-[var(--color-mobile)] mr-2" />
+                                <span className="text-sm">Mobile</span>
                             </div>
                         </div>
-                    </Card>
-                </div>
+                    </CardContent>
+                </Card>
             </div>
-        </>
+        </div>
     )
 }
-
-export default HomePage;

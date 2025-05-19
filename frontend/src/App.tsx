@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button"
 import { ChartComp } from "./components/chart"
 
 function App() {

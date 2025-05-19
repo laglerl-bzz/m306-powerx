@@ -1,11 +1,8 @@
 "use client"
-import { TrendingUp } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -21,6 +18,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 const chartData = [
   { month: "January", desktop: 186, mobile: 80 },
   { month: "February", desktop: 305, mobile: 200 },
@@ -42,8 +42,26 @@ const chartConfig = {
 export function ChartComp() {
   return (
     <Card className="w-10/12">
-      <CardHeader>
-        <CardTitle>Power Diagram</CardTitle>
+      <CardHeader className="flex justify-between">
+        <div>
+          <CardTitle>Power Diagram</CardTitle>
+          <Tabs defaultValue="account" className="w-[400px] mt-2">
+            <TabsList className="w-full">
+              <TabsTrigger value="account">Day</TabsTrigger>
+              <TabsTrigger value="password">Month</TabsTrigger>
+              <TabsTrigger value="settings">Year</TabsTrigger>
+              <TabsTrigger value="custom">Custom</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="border-1 px-3 py-1 rounded-sm font-medium">Download</DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>csv</DropdownMenuItem>
+            <DropdownMenuItem>json</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
@@ -109,6 +127,6 @@ export function ChartComp() {
           </AreaChart>
         </ChartContainer>
       </CardContent>
-    </Card>
+    </Card >
   )
 }

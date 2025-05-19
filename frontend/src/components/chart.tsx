@@ -176,7 +176,7 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
                   tickMargin={8}
                   tickCount={5}
                   domain={[0, 'auto']}
-                  formatter={(value) => `${value}`}
+                  tickFormatter={(value) => `${value}`}
                 />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <defs>

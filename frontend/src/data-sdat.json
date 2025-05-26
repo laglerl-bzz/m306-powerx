@@ -3,14 +3,10 @@
         {
             "documentID": "ID735",
             "interval": {
-                "startDateTime": "2019-02-28T23:00:00Z",
-                "endDateTime": "2019-03-14T23:00:00Z"
+                "startDateTime": "2022-04-28T22:00:00Z",
+                "endDateTime": "2022-04-29T22:00:00Z"
             },
-            "resolution": {
-                "value": 15,
-                "unit": "MIN"
-            },
-            "measureUnit": "KWH",
+            "resolution": 15,
             "data": [
                 {
                     "sequence": 1,
@@ -32,11 +28,7 @@
                 "startDateTime": "2022-04-28T22:00:00Z",
                 "endDateTime": "2022-04-29T22:00:00Z"
             },
-            "resolution": {
-                "value": 15,
-                "unit": "MIN"
-            },
-            "measureUnit": "KWH",
+            "resolution": 15,
             "data": [
                 {
                     "sequence": 1,

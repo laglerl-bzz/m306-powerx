@@ -7,6 +7,7 @@ import { useState, useRef } from "react";
 const UploadPage = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
+    const [fileType, setFileType] = useState<'sdat' | 'esl'>('sdat');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
@@ -60,6 +61,38 @@ const UploadPage = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
+                        {/* File Type Tabs */}
+                        <div className="space-y-2">
+                            <Label className="text-base">File Type</Label>
+                            <div className="text-sm text-muted-foreground mb-3">
+                                Select the type of power data file you're uploading
+                            </div>
+                            <div className="flex w-full rounded-lg border bg-muted p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setFileType('sdat')}
+                                    className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                                        fileType === 'sdat'
+                                            ? 'bg-background text-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    SDAT Files
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFileType('esl')}
+                                    className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                                        fileType === 'esl'
+                                            ? 'bg-background text-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    ESL Files
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="grid w-full gap-1.5">
                             <Label htmlFor="file">Select or Drag a File</Label>
                             <div 
@@ -95,9 +128,8 @@ const UploadPage = () => {
                                             <div className="space-y-1 text-center">
                                                 <p className="text-sm font-medium">
                                                     <span className="text-primary font-semibold">Click to upload</span> or drag and drop
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    sdat- or ESL-Files (XML, max. 10MB)
+                                                </p>                                                <p className="text-xs text-muted-foreground">
+                                                    {fileType.toUpperCase()} Files (XML, max. 10MB)
                                                 </p>
                                             </div>
                                         </>

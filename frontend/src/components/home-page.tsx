@@ -39,17 +39,15 @@ export default function HomePage() {
                                 <SelectItem value="consumptionChart">Consumption chart</SelectItem>
                                 <SelectItem value="meterReadingChart">Meter reading chart</SelectItem>
                             </SelectContent>
-                        </Select>
-
-                        <div className="mt-6">
+                        </Select>                        <div className="mt-6">
                             <h3 className="font-semibold text-sm mb-2">Legend</h3>
                             <div className="flex items-center mb-2">
-                                <div className="w-3 h-3 rounded-full bg-[var(--color-desktop)] mr-2" />
-                                <span className="text-sm">Desktop</span>
+                                <div className="w-3 h-3 rounded-full bg-[var(--color-consumption)] mr-2" />
+                                <span className="text-sm">Power Consumption</span>
                             </div>
                             <div className="flex items-center">
-                                <div className="w-3 h-3 rounded-full bg-[var(--color-mobile)] mr-2" />
-                                <span className="text-sm">Mobile</span>
+                                <div className="w-3 h-3 rounded-full bg-[var(--color-production)] mr-2" />
+                                <span className="text-sm">Power Production</span>
                             </div>
                         </div>
                     </CardContent>

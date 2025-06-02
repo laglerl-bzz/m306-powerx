@@ -213,45 +213,49 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
                   bottom: 5
                 }}
                 height={400}
-              >
-                <CartesianGrid vertical={false} />
+              >                <CartesianGrid 
+                  vertical={false} 
+                  className="stroke-muted-foreground/20"
+                />
                 <XAxis
                   dataKey="month"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
                   tickFormatter={(value) => value.slice(0, 3)}
-                />                <YAxis
+                  className="fill-muted-foreground"
+                />
+                <YAxis
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
                   tickCount={5}
                   domain={[0, 'auto']}
                   tickFormatter={(value) => `${value} kWh`}
+                  className="fill-muted-foreground"
                 />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <defs>
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />                <defs>
                   <linearGradient id="fillConsumption" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="5%"
-                      stopColor="var(--color-consumption)"
+                      stopColor="hsl(var(--chart-1))"
                       stopOpacity={0.8}
                     />
                     <stop
                       offset="95%"
-                      stopColor="var(--color-consumption)"
+                      stopColor="hsl(var(--chart-1))"
                       stopOpacity={0.1}
                     />
                   </linearGradient>
                   <linearGradient id="fillProduction" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="5%"
-                      stopColor="var(--color-production)"
+                      stopColor="hsl(var(--chart-2))"
                       stopOpacity={0.8}
                     />
                     <stop
                       offset="95%"
-                      stopColor="var(--color-production)"
+                      stopColor="hsl(var(--chart-2))"
                       stopOpacity={0.1}
                     />
                   </linearGradient>
@@ -261,7 +265,7 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
                   type="natural"
                   fill="url(#fillProduction)"
                   fillOpacity={0.4}
-                  stroke="var(--color-production)"
+                  stroke="hsl(var(--chart-2))"
                   stackId="a"
                 />
                 <Area
@@ -269,7 +273,7 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
                   type="natural"
                   fill="url(#fillConsumption)"
                   fillOpacity={0.4}
-                  stroke="var(--color-consumption)"
+                  stroke="hsl(var(--chart-1))"
                   stackId="a"
                 />
               </AreaChart>

@@ -54,18 +54,18 @@ const UploadPage = () => {
         <div className="container mx-auto py-10">
             <Card className="max-w-7xl mx-auto">
                 <CardHeader>
-                    <CardTitle className="text-xl font-bold">Upload Power Data</CardTitle>
+                    <CardTitle className="text-xl font-bold">Stromdaten hochladen</CardTitle>
                     <CardDescription>
-                        Upload your power consumption data file for analysis
+                        Lade deine Datei mit Stromverbrauchsdaten zur Analyse hoch
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
-                        {/* File Type Tabs */}
+                        {/* Dateityp-Tabs */}
                         <div className="space-y-2">
-                            <Label className="text-base">File Type</Label>
+                            <Label className="text-base">Dateityp</Label>
                             <div className="text-sm text-muted-foreground mb-3">
-                                Select the type of power data file you're uploading
+                                Wähle den Typ der Stromdaten-Datei, die du hochladen möchtest
                             </div>
                             <div className="flex w-full rounded-lg border bg-muted p-1">
                                 <button
@@ -77,7 +77,7 @@ const UploadPage = () => {
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
                                 >
-                                    SDAT Files
+                                    SDAT-Dateien
                                 </button>
                                 <button
                                     type="button"
@@ -88,14 +88,14 @@ const UploadPage = () => {
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
                                 >
-                                    ESL Files
+                                    ESL-Dateien
                                 </button>
                             </div>
                         </div>
 
                         <div className="grid w-full gap-1.5">
-                            <Label htmlFor="file">Select or Drag a File</Label>
-                            <div 
+                            <Label htmlFor="file">Datei auswählen oder hierher ziehen</Label>
+                            <div
                                 className={`mt-2 border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors
                                     ${isDragging 
                                         ? 'border-primary bg-primary/10' 
@@ -127,9 +127,10 @@ const UploadPage = () => {
                                         <>
                                             <div className="space-y-1 text-center">
                                                 <p className="text-sm font-medium">
-                                                    <span className="text-primary font-semibold">Click to upload</span> or drag and drop
-                                                </p>                                                <p className="text-xs text-muted-foreground">
-                                                    {fileType.toUpperCase()} Files (XML, max. 10MB)
+                                                    <span className="text-primary font-semibold">Zum Hochladen klicken</span> oder Datei hierher ziehen
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {fileType.toUpperCase()}-Dateien (XML, max. 10MB)
                                                 </p>
                                             </div>
                                         </>
@@ -140,7 +141,7 @@ const UploadPage = () => {
                         
                         {fileName && (
                             <Button type="button" className="w-full">
-                                <Upload className="mr-2 h-4 w-4" /> Process File
+                                <Upload className="mr-2 h-4 w-4" /> Datei verarbeiten
                             </Button>
                         )}
                     </div>

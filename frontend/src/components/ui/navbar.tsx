@@ -24,7 +24,7 @@ const Navbar = () => {
             }`}
           >
             <Home className="mr-2 h-4 w-4" />
-            Home
+            Startseite
           </Link>
           <Link 
             to="/upload" 
@@ -33,7 +33,7 @@ const Navbar = () => {
             }`}
           >
             <Upload className="mr-2 h-4 w-4" />
-            Upload
+            Hochladen
           </Link>
           <ModeToggle />
         </nav>

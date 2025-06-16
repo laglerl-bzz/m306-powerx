@@ -22,34 +22,32 @@ export default function HomePage() {
                 <ChartComp preset={preset} />
                 <Card className="w-2/12 h-full">
                     <CardHeader>
-                        <CardTitle>Chart Options</CardTitle>
+                        <CardTitle>Diagramm-Optionen</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Select value={preset} onValueChange={handlePresetChange}>
                             <SelectTrigger className="w-full mb-4">
-                                <SelectValue placeholder="Select Preset" />
+                                <SelectValue placeholder="Preset auswählen" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="purchaseHighTariff">Purchase high tariff</SelectItem>
-                                <SelectItem value="purchaseLowTariff">Purchase low tariff</SelectItem>
-                                <SelectItem value="feedInHighTariff">Feed-in high tariff</SelectItem>
-                                <SelectItem value="feedInLowTariff">Feed-in low tariff</SelectItem>
-                                <SelectItem value="purchase">Purchase</SelectItem>
-                                <SelectItem value="feedIn">Feed-in</SelectItem>
-                                <SelectItem value="consumptionChart">Consumption chart</SelectItem>
-                                <SelectItem value="meterReadingChart">Meter reading chart</SelectItem>
+                                <SelectItem value="purchaseHighTariff">Einkauf Hochtarif</SelectItem>
+                                <SelectItem value="purchaseLowTariff">Einkauf Niedertarif</SelectItem>
+                                <SelectItem value="feedInHighTariff">Einspeisung Hochtarif</SelectItem>
+                                <SelectItem value="feedInLowTariff">Einspeisung Niedertarif</SelectItem>
+                                <SelectItem value="purchase">Einkauf</SelectItem>
+                                <SelectItem value="feedIn">Einspeisung</SelectItem>
+                                <SelectItem value="consumptionChart">Verbrauchsdiagramm</SelectItem>
+                                <SelectItem value="meterReadingChart">Zählerstandsdiagramm</SelectItem>
                             </SelectContent>
-                        </Select>
-
-                        <div className="mt-6">
-                            <h3 className="font-semibold text-sm mb-2">Legend</h3>
+                        </Select>                        <div className="mt-6">
+                            <h3 className="font-semibold text-sm mb-2">Legende</h3>
                             <div className="flex items-center mb-2">
-                                <div className="w-3 h-3 rounded-full bg-[var(--color-desktop)] mr-2" />
-                                <span className="text-sm">Desktop</span>
+                                <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-1))] mr-2" />
+                                <span className="text-sm">Stromverbrauch</span>
                             </div>
                             <div className="flex items-center">
-                                <div className="w-3 h-3 rounded-full bg-[var(--color-mobile)] mr-2" />
-                                <span className="text-sm">Mobile</span>
+                                <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-2))] mr-2" />
+                                <span className="text-sm">Stromproduktion</span>
                             </div>
                         </div>
                     </CardContent>

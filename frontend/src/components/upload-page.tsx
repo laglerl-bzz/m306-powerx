@@ -19,15 +19,18 @@ export default function UploadPage() {
     e.stopPropagation();
     setIsDragging(true);
   };
+
   const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
+
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
+
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -38,7 +41,7 @@ export default function UploadPage() {
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputFiles = e.target.files;
-    if (!inputFiles) return;              // ← guard against null
+    if (!inputFiles) return;
     setFiles((prev) => [...prev, ...Array.from(inputFiles)]);
   };
 

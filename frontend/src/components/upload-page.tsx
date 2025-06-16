@@ -68,13 +68,13 @@ export default function UploadPage() {
     <div className="container mx-auto py-10">
       <Card className="max-w-3xl mx-auto space-y-6">
         <CardHeader>
-          <CardTitle>Upload Power Data</CardTitle>
-          <CardDescription>Choose file type and upload one or more XML files</CardDescription>
+          <CardTitle>Stromdaten hochladen</CardTitle>
+          <CardDescription>Wähle den Dateityp und lade eine oder mehrere XML-Dateien hoch</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* File Type Selector */}
           <div>
-            <Label className="text-base">File Type</Label>
+            <Label className="text-base">Dateityp</Label>
             <div className="flex w-full rounded-lg border bg-muted p-1 mt-2">
               {(["sdat", "esl"] as FileType[]).map((type) => (
                 <button
@@ -95,7 +95,7 @@ export default function UploadPage() {
 
           {/* Dropzone */}
           <div>
-            <Label htmlFor="file-input">Select or Drag & Drop Files</Label>
+            <Label htmlFor="file-input">Dateien auswählen oder per Drag & Drop ablegen</Label>
             <div
               id="file-input"
               className={`mt-2 border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
@@ -123,10 +123,10 @@ export default function UploadPage() {
                 </div>
                 <div className="space-y-1 text-center">
                   <p className="text-sm font-medium">
-                    <span className="text-primary font-semibold">Click to upload</span> or drag and drop
+                    <span className="text-primary font-semibold">Zum Hochladen klicken</span> oder hierher ziehen
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {fileType.toUpperCase()} files (XML, max. 10MB each)
+                    {fileType.toUpperCase()}-Dateien (XML, max. 10 MB pro Datei)
                   </p>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export default function UploadPage() {
           {/* Selected Files List */}
           {files.length > 0 && (
             <div className="space-y-2">
-              <Label>Selected Files:</Label>
+              <Label>Ausgewählte Dateien:</Label>
               <ul className="list-disc list-inside text-sm">
                 {files.map((f, idx) => (
                   <li key={`${f.name}-${idx}`} className="flex items-center space-x-2">
@@ -151,7 +151,7 @@ export default function UploadPage() {
           {/* Action Buttons */}
           <div className="flex space-x-4">
             <Button onClick={handleUpload} disabled={files.length === 0} className="flex-1">
-              <Upload className="mr-2 h-4 w-4" /> Process Files
+              <Upload className="mr-2 h-4 w-4" /> Dateien verarbeiten
             </Button>
             <Button
               variant="outline"
@@ -159,7 +159,7 @@ export default function UploadPage() {
               disabled={files.length === 0}
               className="flex-1"
             >
-              Clear
+              Zurücksetzen
             </Button>
           </div>
 

@@ -39,17 +39,9 @@ export default function HomePage() {
                                 <SelectItem value="consumptionChart">Verbrauchsdiagramm</SelectItem>
                                 <SelectItem value="meterReadingChart">Zählerstandsdiagramm</SelectItem>
                             </SelectContent>
-                        </Select>                        <div className="mt-6">
+                        </Select>
+                        <div className="mt-6">
                             <h3 className="font-semibold text-sm mb-2">Legende</h3>
-                            <div className="flex items-center mb-2">
-                                <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-1))] mr-2" />
-                                <span className="text-sm">Stromverbrauch</span>
-                            </div>
-                            <div className="flex items-center">
-                                <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-2))] mr-2" />
-                                <span className="text-sm">Stromproduktion</span>
-                            </div>
-                            <h3 className="font-semibold text-sm mb-2">Legend</h3>
                             {Object.entries(obisConfig).map(([obis, config]) => (
                                 <div key={obis} className="flex items-center mb-2">
                                     <div 

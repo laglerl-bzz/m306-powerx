@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion, AnimatePresence } from "framer-motion"
 import { Download } from "lucide-react"
+import { eslBigData } from "../data-esl-big"
 
 type ChartConfig = {
   [key: string]: {
@@ -19,107 +20,77 @@ type ChartConfig = {
   }
 }
 
-// Base chart data - Power consumption in kWh
-const chartData = [
-  { month: "January", consumption: 450, production: 320 },
-  { month: "February", consumption: 520, production: 380 },
-  { month: "March", consumption: 480, production: 420 },
-  { month: "April", consumption: 420, production: 480 },
-  { month: "May", consumption: 380, production: 520 },
-  { month: "June", consumption: 360, production: 580 },
-]
+// Transform ESL data to chart format
+const transformESLData = () => {
+  return eslBigData["esl-data"].map((entry) => {
+    // Convert ISO date to readable month
+    const date = new Date(entry.month)
+    const monthName = date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "2-digit"
+    })
 
-// Data for different presets
-const presetData = {
-  purchaseHighTariff: [
-    { month: "January", consumption: 580, production: 220 },
-    { month: "February", consumption: 650, production: 280 },
-    { month: "March", consumption: 620, production: 320 },
-    { month: "April", consumption: 560, production: 380 },
-    { month: "May", consumption: 520, production: 420 },
-    { month: "June", consumption: 480, production: 460 },
-  ],
-  purchaseLowTariff: [
-    { month: "January", consumption: 320, production: 420 },
-    { month: "February", consumption: 380, production: 480 },
-    { month: "March", consumption: 360, production: 520 },
-    { month: "April", consumption: 340, production: 560 },
-    { month: "May", consumption: 300, production: 600 },
-    { month: "June", consumption: 280, production: 640 },
-  ],
-  feedInHighTariff: [
-    { month: "January", consumption: 200, production: 680 },
-    { month: "February", consumption: 240, production: 720 },
-    { month: "March", consumption: 220, production: 760 },
-    { month: "April", consumption: 180, production: 800 },
-    { month: "May", consumption: 160, production: 840 },
-    { month: "June", consumption: 140, production: 880 },
-  ],
-  feedInLowTariff: [
-    { month: "January", consumption: 280, production: 520 },
-    { month: "February", consumption: 320, production: 560 },
-    { month: "March", consumption: 300, production: 600 },
-    { month: "April", consumption: 260, production: 640 },
-    { month: "May", consumption: 240, production: 680 },
-    { month: "June", consumption: 220, production: 720 },
-  ],
-  purchase: [
-    { month: "January", consumption: 520, production: 280 },
-    { month: "February", consumption: 580, production: 320 },
-    { month: "March", consumption: 560, production: 360 },
-    { month: "April", consumption: 500, production: 400 },
-    { month: "May", consumption: 460, production: 440 },
-    { month: "June", consumption: 420, production: 480 },
-  ],
-  feedIn: [
-    { month: "January", consumption: 240, production: 600 },
-    { month: "February", consumption: 280, production: 640 },
-    { month: "March", consumption: 260, production: 680 },
-    { month: "April", consumption: 220, production: 720 },
-    { month: "May", consumption: 200, production: 760 },
-    { month: "June", consumption: 180, production: 800 },
-  ],
-  consumptionChart: [
-    { month: "January", consumption: 680, production: 120 },
-    { month: "February", consumption: 720, production: 160 },
-    { month: "March", consumption: 700, production: 140 },
-    { month: "April", consumption: 640, production: 180 },
-    { month: "May", consumption: 600, production: 200 },
-    { month: "June", consumption: 580, production: 220 },
-  ],
-  meterReadingChart: [
-    { month: "January", consumption: 400, production: 200 },
-    { month: "February", consumption: 850, production: 480 },
-    { month: "March", consumption: 1200, production: 680 },
-    { month: "April", consumption: 1350, production: 930 },
-    { month: "May", consumption: 1670, production: 1120 },
-    { month: "June", consumption: 2010, production: 1330 },
-  ],
+    // Create flat object with OBIS values
+    const flat: { [key: string]: any } = {
+      month: monthName,
+      date: entry.month // Keep original date for sorting
+    }
+
+    entry.data.forEach((item) => {
+      flat[item.obis] = item.value
+    })
+
+    return flat
+  })
 }
 
-const chartConfig = {
-  consumption: {
-    label: "Power Consumption",
-    color: "hsl(var(--chart-1))",
+// Get transformed data
+const eslTransformedData = transformESLData()  // OBIS code mappings using Tailwind green shades
+export const obisConfig = {
+  "1-1:1.8.1": {
+    label: "High Tariff Purchase",
+    color: "#93c5fd", // blue-300
   },
-  production: {
-    label: "Power Production",
-    color: "hsl(var(--chart-2))",
+  "1-1:1.8.2": {
+    label: "Low Tariff Purchase",
+    color: "#2563eb", // blue-600
+  },
+  "1-1:2.8.1": {
+    label: "High Tariff Feed-in",
+    color: "#10b981", // green-500
+  },
+  "1-1:2.8.2": {
+    label: "Low Tariff Feed-in",
+    color: "#14532d", // green-900
   },
 } satisfies ChartConfig
 
+// Calculate Y-axis domain for proper scaling
+const getAllValues = () => {
+  const values: number[] = []
+  eslTransformedData.forEach(entry => {
+    Object.keys(obisConfig).forEach(obis => {
+      if (entry[obis]) values.push(entry[obis])
+    })
+  })
+  return values
+}
+
+const allValues = getAllValues()
+const minValue = Math.min(...allValues)
+const maxValue = Math.max(...allValues)
+const yAxisMin = Math.floor(minValue / 1000) * 1000
+const yAxisMax = Math.ceil(maxValue / 1000) * 1000
+
 export function ChartComp({ preset = "" }: { preset?: string }) {
-  const [currentData, setCurrentData] = useState(chartData)
+  const [currentData, setCurrentData] = useState(eslTransformedData)
   const [key, setKey] = useState(0) // Key for forcing animation on data change
 
   useEffect(() => {
-    if (preset && preset in presetData) {
-      setCurrentData(presetData[preset as keyof typeof presetData])
-      setKey(prev => prev + 1) // Update key to trigger animation
-    } else {
-      setCurrentData(chartData)
-      setKey(prev => prev + 1) // Update key to trigger animation
-    }
+    // For now, we'll always use the ESL data
+    // You can extend this later to handle different presets
+    setCurrentData(eslTransformedData)
+    setKey(prev => prev + 1) // Update key to trigger animation
   }, [preset])
 
   // Function to download data as CSV
@@ -128,7 +99,7 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
     const headers = Object.keys(currentData[0]).join(',');
 
     // Create CSV content rows
-    const csvRows = currentData.map(row =>
+    const csvRows = currentData.map((row: any) =>
       Object.values(row).join(',')
     );
 
@@ -202,8 +173,7 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-          >
-            <ChartContainer config={chartConfig}>
+          >            <ChartContainer config={obisConfig}>
               <AreaChart
                 accessibilityLayer
                 data={currentData} margin={{
@@ -223,61 +193,45 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={(value) => value.slice(0, 3)}
+                  tickFormatter={(value) => value.split(' ')[0].slice(0, 3)}
                   className="fill-muted-foreground"
                 />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickCount={5}
-                  domain={[0, 'auto']}
-                  tickFormatter={(value) => `${value} kWh`}
+                  tickCount={6}
+                  domain={[yAxisMin, yAxisMax]}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(1)}k kWh`}
                   className="fill-muted-foreground"
                 />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <defs>
-                  <linearGradient id="fillConsumption" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="hsl(var(--chart-1))"
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="hsl(var(--chart-1))"
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
-                  <linearGradient id="fillProduction" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="hsl(var(--chart-2))"
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="hsl(var(--chart-2))"
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />                <defs>
+                  {Object.keys(obisConfig).map((obis) => (
+                    <linearGradient key={obis} id={`fill-${obis}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor={obisConfig[obis as keyof typeof obisConfig].color}
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={obisConfig[obis as keyof typeof obisConfig].color}
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  ))}
                 </defs>
-                <Area
-                  dataKey="production"
-                  type="natural"
-                  fill="url(#fillProduction)"
-                  fillOpacity={0.4}
-                  stroke="hsl(var(--chart-2))"
-                  stackId="a"
-                />
-                <Area
-                  dataKey="consumption"
-                  type="natural"
-                  fill="url(#fillConsumption)"
-                  fillOpacity={0.4}
-                  stroke="hsl(var(--chart-1))"
-                  stackId="a"
-                />
+                {Object.keys(obisConfig).map((obis) => (
+                  <Area
+                    key={obis}
+                    dataKey={obis}
+                    type="natural"
+                    fill={`url(#fill-${obis})`}
+                    fillOpacity={0.4}
+                    stroke={obisConfig[obis as keyof typeof obisConfig].color}
+                    stackId="a"
+                  />
+                ))}
               </AreaChart>
             </ChartContainer>
           </motion.div>

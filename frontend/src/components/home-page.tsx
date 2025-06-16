@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ChartComp } from "./chart"
+import { ChartComp, obisConfig } from "./chart"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import {
     Select,
@@ -41,14 +41,15 @@ export default function HomePage() {
                             </SelectContent>
                         </Select>                        <div className="mt-6">
                             <h3 className="font-semibold text-sm mb-2">Legend</h3>
-                            <div className="flex items-center mb-2">
-                                <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-1))] mr-2" />
-                                <span className="text-sm">Power Consumption</span>
-                            </div>
-                            <div className="flex items-center">
-                                <div className="w-3 h-3 rounded-full bg-[hsl(var(--chart-2))] mr-2" />
-                                <span className="text-sm">Power Production</span>
-                            </div>
+                            {Object.entries(obisConfig).map(([obis, config]) => (
+                                <div key={obis} className="flex items-center mb-2">
+                                    <div 
+                                        className="w-3 h-3 rounded-full mr-2" 
+                                        style={{ backgroundColor: config.color }}
+                                    />
+                                    <span className="text-sm">{config.label}</span>
+                                </div>
+                            ))}
                         </div>
                     </CardContent>
                 </Card>

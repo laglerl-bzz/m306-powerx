@@ -10,7 +10,7 @@ const Navbar = () => {
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto justify-between">
         <div className="flex">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="h-6 w-6 bg-primary rounded-sm flex items-center justify-center">
+            <div className="h-6 w-6 bg-green-500 rounded-sm flex items-center justify-center">
               <span className="text-primary-foreground text-xs font-bold">PX</span>
             </div>
             <span className="font-semibold">PowerX</span>

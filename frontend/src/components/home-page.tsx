@@ -19,7 +19,7 @@ export default function HomePage() {
     return (
         <div className="h-screen justify-center flex items-center">
             <div className="w-10/12 flex flex-row gap-4">
-                <ChartComp preset={preset} />
+                <ChartComp/>
                 <Card className="w-2/12 h-full">
                     <CardHeader>
                         <CardTitle>Chart Options</CardTitle>

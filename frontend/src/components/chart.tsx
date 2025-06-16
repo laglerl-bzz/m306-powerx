@@ -142,18 +142,18 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
   return (
     <Card className="w-10/12">
       <CardHeader className="flex justify-between items-center">
-        <CardTitle>Power Diagram</CardTitle>
+        <CardTitle>Leistungsdiagramm</CardTitle>
         <Tabs defaultValue="day" className="w-[400px]">
           <TabsList className="w-full">
-            <TabsTrigger value="day">Day</TabsTrigger>
-            <TabsTrigger value="month">Month</TabsTrigger>
-            <TabsTrigger value="year">Year</TabsTrigger>
-            <TabsTrigger value="custom">Custom</TabsTrigger>
+            <TabsTrigger value="day">Tag</TabsTrigger>
+            <TabsTrigger value="month">Monat</TabsTrigger>
+            <TabsTrigger value="year">Jahr</TabsTrigger>
+            <TabsTrigger value="custom">Individuell</TabsTrigger>
           </TabsList>
         </Tabs>        <DropdownMenu>
           <DropdownMenuTrigger className="border px-3 py-1 rounded-sm font-medium flex items-center">
             <Download className="h-4 w-4 mr-2" />
-            Download
+            Herunterladen
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={downloadCSV}>

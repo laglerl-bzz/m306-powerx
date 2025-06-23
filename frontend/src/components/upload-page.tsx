@@ -1,5 +1,3 @@
-// src/components/upload-page.tsx
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +11,25 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [result, setResult] = useState<UploadResponse<SdatResult> | UploadResponse<EslResult> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Validate XML content based on selected type
+  const validateFile = async (file: File): Promise<boolean> => {
+    try {
+      const text = await file.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'application/xml');
+
+      if (fileType === 'sdat') {
+        const nodes = xml.getElementsByTagNameNS('http://www.strom.ch', 'DocumentID');
+        return nodes.length > 0;
+      } else {
+        const nodes = xml.getElementsByTagName('TimePeriod');
+        return nodes.length > 0;
+      }
+    } catch {
+      return false;
+    }
+  };
 
   const onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -31,18 +48,46 @@ export default function UploadPage() {
     e.stopPropagation();
   };
 
-  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+
     const dropped = Array.from(e.dataTransfer.files);
-    setFiles((prev) => [...prev, ...dropped]);
+    const valid: File[] = [];
+    for (const file of dropped) {
+      if (!file.name.toLowerCase().endsWith('.xml')) {
+        alert(`Datei ${file.name} hat nicht die Endung .xml`);
+        continue;
+      }
+      const ok = await validateFile(file);
+      if (!ok) {
+        alert(`Datei ${file.name} ist kein gültiges ${fileType.toUpperCase()}-Format`);
+        continue;
+      }
+      valid.push(file);
+    }
+    setFiles(prev => [...prev, ...valid]);
   };
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputFiles = e.target.files;
     if (!inputFiles) return;
-    setFiles((prev) => [...prev, ...Array.from(inputFiles)]);
+
+    const valid: File[] = [];
+    for (const file of Array.from(inputFiles)) {
+      if (!file.name.toLowerCase().endsWith('.xml')) {
+        alert(`Datei ${file.name} hat nicht die Endung .xml`);
+        continue;
+      }
+      const ok = await validateFile(file);
+      if (!ok) {
+        alert(`Datei ${file.name} ist kein gültiges ${fileType.toUpperCase()}-Format`);
+        continue;
+      }
+      valid.push(file);
+    }
+    setFiles(prev => [...prev, ...valid]);
   };
 
   const handleClick = () => {
@@ -52,8 +97,13 @@ export default function UploadPage() {
   const handleUpload = async () => {
     if (files.length === 0) return;
     try {
-      const data = await uploadFiles(fileType, files);
-      setResult(data);
+      const data = await uploadFiles(fileType, files as File[] & any);
+      if ((data as any).success === false) {
+        alert(`Fehler: ${(data as any).error}`);
+      } else {
+        alert('Dateien erfolgreich verarbeitet!');
+        setResult(data as any);
+      }
     } catch (err: any) {
       alert(err.message);
     }
@@ -62,6 +112,19 @@ export default function UploadPage() {
   const clearAll = () => {
     setFiles([]);
     setResult(null);
+  };
+
+  const handleClearServer = async () => {
+    if (!confirm('Alle Server-Daten wirklich löschen?')) return;
+    try {
+      const res = await fetch('/api/clear');
+      if (!res.ok) throw new Error('Server konnte nicht gelöscht werden');
+      const data = await res.json();
+      alert(data.message);
+      clearAll();
+    } catch (err: any) {
+      alert(err.message);
+    }
   };
 
   return (
@@ -76,15 +139,15 @@ export default function UploadPage() {
           <div>
             <Label className="text-base">Dateityp</Label>
             <div className="flex w-full rounded-lg border bg-muted p-1 mt-2">
-              {(["sdat", "esl"] as FileType[]).map((type) => (
+              {(['sdat', 'esl'] as FileType[]).map(type => (
                 <button
                   key={type}
                   type="button"
-                  onClick={() => setFileType(type)}
+                  onClick={() => { setFileType(type); clearAll(); }}
                   className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
                     fileType === type
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {type.toUpperCase()}
@@ -100,8 +163,8 @@ export default function UploadPage() {
               id="file-input"
               className={`mt-2 border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
                 isDragging
-                  ? "border-primary bg-primary/10"
-                  : "border-gray-300 hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-800"
+                  ? 'border-primary bg-primary/10'
+                  : 'border-gray-300 hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
               onDragEnter={onDragEnter}
               onDragLeave={onDragLeave}
@@ -160,6 +223,13 @@ export default function UploadPage() {
               className="flex-1"
             >
               Zurücksetzen
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleClearServer}
+              className="flex-1"
+            >
+              Serverdaten löschen
             </Button>
           </div>
 

@@ -12,6 +12,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion, AnimatePresence } from "framer-motion"
 import { Download } from "lucide-react"
 import { eslBigData } from "../data-esl-big"
+import { sdatBig } from "../data-sdat-big"
+import { generateMonthlySDATTotals } from "../data-sdat-monthly"
 
 type ChartConfig = {
   [key: string]: {
@@ -44,54 +46,137 @@ const transformESLData = () => {
   })
 }
 
+// Transform SDAT data to chart format
+const transformSDATData = () => {
+  // Group data by documentID to separate feed-in and feed-out
+  const groupedData: { [key: string]: any[] } = {}
+
+  sdatBig["sdat-data"].forEach((entry) => {
+    if (!groupedData[entry.documentID]) {
+      groupedData[entry.documentID] = []
+    }
+
+    // Create time series data points for each sequence
+    entry.data.forEach((point) => {
+      const startDate = new Date(entry.interval.startDateTime)
+      // Calculate time for this sequence (resolution is in minutes)
+      const timeOffset = (point.sequence - 1) * entry.resolution * 60 * 1000 // Convert to milliseconds
+      const pointTime = new Date(startDate.getTime() + timeOffset)
+
+      const timeLabel = pointTime.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+
+      groupedData[entry.documentID].push({
+        time: timeLabel,
+        sequence: point.sequence,
+        volume: point.volume,
+        timestamp: pointTime.getTime(),
+        documentID: entry.documentID
+      })
+    })
+  })
+
+  // Combine data from both document IDs into a single time series
+  const allTimePoints: { [key: string]: any } = {}
+
+  Object.keys(groupedData).forEach(docId => {
+    groupedData[docId].forEach(point => {
+      const key = point.time
+      if (!allTimePoints[key]) {
+        allTimePoints[key] = {
+          month: point.time, // Using 'month' as the x-axis key for consistency
+          time: point.time,
+          timestamp: point.timestamp
+        }
+      }
+      // ID735 = Bezug (Purchase), ID742 = Einspeisung (Feed-in)
+      if (docId === 'ID735') {
+        allTimePoints[key]['bezug'] = point.volume
+      } else if (docId === 'ID742') {
+        allTimePoints[key]['einspeisung'] = point.volume
+      }
+    })
+  })
+
+  // Convert to array and sort by timestamp
+  return Object.values(allTimePoints).sort((a: any, b: any) => a.timestamp - b.timestamp)
+}
+
+// Transform SDAT data for monthly aggregation (multiple days)
+const transformSDATMonthly = () => {
+  // Use the realistic monthly SDAT totals generator
+  return generateMonthlySDATTotals()
+}
+
 // Get transformed data
-const eslTransformedData = transformESLData()  // OBIS code mappings using Tailwind green shades
+const eslTransformedData = transformESLData()
+const sdatTransformedData = transformSDATData()
+const sdatMonthlyData = transformSDATMonthly()
+
+// OBIS code mappings for ESL data
 export const obisConfig = {
   "1-1:1.8.1": {
-    label: "High Tariff Purchase",
+    label: "Bezug Hochtarif",
     color: "#93c5fd", // blue-300
   },
   "1-1:1.8.2": {
-    label: "Low Tariff Purchase",
+    label: "Bezug Niedertarif",
     color: "#2563eb", // blue-600
   },
   "1-1:2.8.1": {
-    label: "High Tariff Feed-in",
+    label: "Einspeisung Hochtarif",
     color: "#10b981", // green-500
   },
   "1-1:2.8.2": {
-    label: "Low Tariff Feed-in",
+    label: "Einspeisung Niedertarif",
     color: "#14532d", // green-900
   },
 } satisfies ChartConfig
 
-// Calculate Y-axis domain for proper scaling
-const getAllValues = () => {
-  const values: number[] = []
-  eslTransformedData.forEach(entry => {
-    Object.keys(obisConfig).forEach(obis => {
-      if (entry[obis]) values.push(entry[obis])
-    })
-  })
-  return values
-}
+// SDAT document ID mappings for SDAT data
+export const sdatConfig = {
+  "bezug": {
+    label: "Bezug",
+    color: "#2563eb",
+  },
+  "einspeisung": {
+    label: "Einspeisung",
+    color: "#10b981",
+  },
+} satisfies ChartConfig
 
-const allValues = getAllValues()
-const minValue = Math.min(...allValues)
-const maxValue = Math.max(...allValues)
-const yAxisMin = Math.floor(minValue / 1000) * 1000
-const yAxisMax = Math.ceil(maxValue / 1000) * 1000
-
-export function ChartComp({ preset = "" }: { preset?: string }) {
+export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; onTimespanChange?: (timespan: string) => void }) {
   const [currentData, setCurrentData] = useState(eslTransformedData)
-  const [key, setKey] = useState(0) // Key for forcing animation on data change
+  const [currentConfig, setCurrentConfig] = useState<ChartConfig>(obisConfig)
+  const [selectedTimespan, setSelectedTimespan] = useState("month")
+  const [key, setKey] = useState(0) // Key for forcing animation on data change  // Function to determine which data to use based on timespan
+  const getDataForTimespan = (timespan: string) => {
+    // Day and custom use daily SDAT data
+    if (timespan === "day" || timespan === "custom") {
+      return { data: sdatTransformedData, config: sdatConfig as ChartConfig }
+    }
+    // Month uses aggregated monthly SDAT data
+    if (timespan === "month") {
+      return { data: sdatMonthlyData, config: sdatConfig as ChartConfig }
+    }
+    // Year uses ESL data
+    return { data: eslTransformedData, config: obisConfig as ChartConfig }
+  }// For SDAT data (smaller values), use different scaling
+  const isSDATData = selectedTimespan === "day" || selectedTimespan === "month" || selectedTimespan === "custom"
 
   useEffect(() => {
-    // For now, we'll always use the ESL data
-    // You can extend this later to handle different presets
-    setCurrentData(eslTransformedData)
+    const { data, config } = getDataForTimespan(selectedTimespan)
+    setCurrentData(data)
+    setCurrentConfig(config)
     setKey(prev => prev + 1) // Update key to trigger animation
-  }, [preset])
+  }, [selectedTimespan, preset])
+  // Handle timespan change
+  const handleTimespanChange = (value: string) => {
+    setSelectedTimespan(value)
+    onTimespanChange?.(value) // Notify parent component
+  }
 
   // Function to download data as CSV
   const downloadCSV = () => {
@@ -138,19 +223,20 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
     link.click();
     document.body.removeChild(link);
   };
-
   return (
     <Card className="w-10/12">
       <CardHeader className="flex justify-between items-center">
-        <CardTitle>Leistungsdiagramm</CardTitle>
-        <Tabs defaultValue="day" className="w-[400px]">
+        <CardTitle>
+          {isSDATData ? "Verbrauchsdiagramm" : "Leistungsdiagramm"}
+        </CardTitle>
+        <Tabs value={selectedTimespan} onValueChange={handleTimespanChange} className="w-[400px]">
           <TabsList className="w-full">
             <TabsTrigger value="day">Tag</TabsTrigger>
             <TabsTrigger value="month">Monat</TabsTrigger>
             <TabsTrigger value="year">Jahr</TabsTrigger>
             <TabsTrigger value="custom">Individuell</TabsTrigger>
           </TabsList>
-        </Tabs>        <DropdownMenu>
+        </Tabs><DropdownMenu>
           <DropdownMenuTrigger className="border px-3 py-1 rounded-sm font-medium flex items-center">
             <Download className="h-4 w-4 mr-2" />
             Herunterladen
@@ -173,7 +259,7 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-          >            <ChartContainer config={obisConfig}>
+          >            <ChartContainer config={currentConfig}>
               <AreaChart
                 accessibilityLayer
                 data={currentData} margin={{
@@ -187,54 +273,61 @@ export function ChartComp({ preset = "" }: { preset?: string }) {
                 <CartesianGrid
                   vertical={false}
                   className="stroke-muted-foreground/20"
-                />
-                <XAxis
+                />                <XAxis
                   dataKey="month"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={(value) => value.split(' ')[0].slice(0, 3)}
+                  tickFormatter={(value) =>
+                    isSDATData
+                      ? value // Show full time for SDAT data 
+                      : value.split(' ')[0].slice(0, 3) // Show abbreviated month for ESL data
+                  }
                   className="fill-muted-foreground"
-                />
-                <YAxis
+                />                <YAxis
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
                   tickCount={6}
-                  domain={[yAxisMin, yAxisMax]}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(1)}k kWh`}
+                  domain={[0, 'dataMax']}
+                  allowDataOverflow={false}
+                  tickFormatter={(value) =>
+                    isSDATData
+                      ? `${value.toFixed(1)} kWh`
+                      : `${(value / 1000).toFixed(1)}k kWh`
+                  }
                   className="fill-muted-foreground"
                 />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />                <defs>
-                  {Object.keys(obisConfig).map((obis) => (
-                    <linearGradient key={obis} id={`fill-${obis}`} x1="0" y1="0" x2="0" y2="1">
+                  {Object.keys(currentConfig).map((key) => (
+                    <linearGradient key={key} id={`fill-${key}`} x1="0" y1="0" x2="0" y2="1">
                       <stop
                         offset="5%"
-                        stopColor={obisConfig[obis as keyof typeof obisConfig].color}
+                        stopColor={currentConfig[key].color}
                         stopOpacity={0.8}
                       />
                       <stop
                         offset="95%"
-                        stopColor={obisConfig[obis as keyof typeof obisConfig].color}
+                        stopColor={currentConfig[key].color}
                         stopOpacity={0.1}
                       />
                     </linearGradient>
                   ))}
-                </defs>
-                {Object.keys(obisConfig).map((obis) => (
+                </defs>                {Object.keys(currentConfig).map((key) => (
                   <Area
-                    key={obis}
-                    dataKey={obis}
-                    type="natural"
-                    fill={`url(#fill-${obis})`}
+                    key={key}
+                    dataKey={key}
+                    type="monotone"
+                    fill={`url(#fill-${key})`}
                     fillOpacity={0.4}
-                    stroke={obisConfig[obis as keyof typeof obisConfig].color}
+                    stroke={currentConfig[key].color}
                     stackId="a"
+                    connectNulls={false}
+                    baseLine={0}
                   />
                 ))}
               </AreaChart>
-            </ChartContainer>
-          </motion.div>
+            </ChartContainer>          </motion.div>
         </AnimatePresence>
       </CardContent>
     </Card>

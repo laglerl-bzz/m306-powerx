@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -13,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Download } from "lucide-react"
 import { eslBigData } from "../data-esl-big"
 import { sdatBig } from "../data-sdat-big"
-import { generateMonthlySDATTotals } from "../data-sdat-monthly"
+import { sdatMonthlyData as sdatMonthlyDataFile } from "../data-sdat-monthly"
 
 type ChartConfig = {
   [key: string]: {
@@ -104,10 +103,59 @@ const transformSDATData = () => {
   return Object.values(allTimePoints).sort((a: any, b: any) => a.timestamp - b.timestamp)
 }
 
-// Transform SDAT data for monthly aggregation (multiple days)
+// Transform SDAT data for monthly view using sdatMonthlyData
 const transformSDATMonthly = () => {
-  // Use the realistic monthly SDAT totals generator
-  return generateMonthlySDATTotals()
+  // Initialize a map to store daily sums
+  const dayMap: { [date: string]: { bezug: number; einspeisung: number; timestamp: number; readings: number } } = {};
+
+  // Process each entry in the SDAT data
+  sdatMonthlyDataFile["sdat-data"].forEach((entry: any) => {
+    const dateObj = new Date(entry.interval.startDateTime);
+    const dateStr = dateObj.toISOString().split("T")[0];
+    
+    // Initialize the day entry if it doesn't exist
+    if (!dayMap[dateStr]) {
+      dayMap[dateStr] = {
+        bezug: 0,
+        einspeisung: 0,
+        timestamp: dateObj.getTime(),
+        readings: 0
+      };
+    }
+
+    // Sum up all volumes for this day
+    if (entry.data) {
+      const dailySum = entry.data.reduce((sum: number, point: any) => sum + point.volume, 0);
+      if (entry.documentID === "ID735") {
+        dayMap[dateStr].bezug += dailySum;
+      } else if (entry.documentID === "ID742") {
+        dayMap[dateStr].einspeisung += dailySum;
+      }
+      dayMap[dateStr].readings += entry.data.length;
+    }
+  });
+
+  // Convert the map to an array of daily data points
+  return Object.entries(dayMap).map(([date, vals]) => {
+    const dateObj = new Date(date);
+    return {
+      month: dateObj.toLocaleDateString("de-DE", { 
+        day: "2-digit",
+        month: "2-digit"
+      }),
+      fullDate: dateObj.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        weekday: "long"
+      }),
+      time: dateObj.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }),
+      timestamp: vals.timestamp,
+      bezug: +vals.bezug.toFixed(2),
+      einspeisung: +vals.einspeisung.toFixed(2),
+      totalReadings: vals.readings
+    };
+  }).sort((a, b) => a.timestamp - b.timestamp);
 }
 
 // Get transformed data
@@ -151,19 +199,39 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
   const [currentData, setCurrentData] = useState(eslTransformedData)
   const [currentConfig, setCurrentConfig] = useState<ChartConfig>(obisConfig)
   const [selectedTimespan, setSelectedTimespan] = useState("month")
-  const [key, setKey] = useState(0) // Key for forcing animation on data change  // Function to determine which data to use based on timespan
+  const [key, setKey] = useState(0) // Key for forcing animation on data change  
+
+  // Function to determine which data to use based on timespan
   const getDataForTimespan = (timespan: string) => {
-    // Day and custom use daily SDAT data
-    if (timespan === "day" || timespan === "custom") {
+    // Day view uses daily SDAT data
+    if (timespan === "day") {
       return { data: sdatTransformedData, config: sdatConfig as ChartConfig }
     }
     // Month uses aggregated monthly SDAT data
     if (timespan === "month") {
       return { data: sdatMonthlyData, config: sdatConfig as ChartConfig }
     }
-    // Year uses ESL data
+    // Custom view - use SDAT for periods under 3 months, ESL for longer periods
+    if (timespan === "custom") {
+      // Get the date range of the data
+      const sdatDates = sdatMonthlyData.map(d => new Date(d.timestamp));
+      const minDate = new Date(Math.min(...sdatDates.map(d => d.getTime())));
+      const maxDate = new Date(Math.max(...sdatDates.map(d => d.getTime())));
+      
+      // Calculate the difference in months
+      const monthsDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + 
+                        (maxDate.getMonth() - minDate.getMonth());
+      
+      // Use SDAT data for periods under 3 months
+      if (monthsDiff < 3) {
+        return { data: sdatMonthlyData, config: sdatConfig as ChartConfig }
+      }
+    }
+    // Year and longer custom periods use ESL data
     return { data: eslTransformedData, config: obisConfig as ChartConfig }
-  }// For SDAT data (smaller values), use different scaling
+  }
+
+  // For SDAT data (smaller values), use different scaling
   const isSDATData = selectedTimespan === "day" || selectedTimespan === "month" || selectedTimespan === "custom"
 
   useEffect(() => {
@@ -172,6 +240,41 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
     setCurrentConfig(config)
     setKey(prev => prev + 1) // Update key to trigger animation
   }, [selectedTimespan, preset])
+
+  // Format x-axis ticks based on timespan
+  const formatXAxisTick = (value: string) => {
+    if (selectedTimespan === "month") {
+      // For monthly view, show only DD.MM
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        // If value is already in DD.MM format
+        return value;
+      }
+      return date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit"
+      });
+    } else if (selectedTimespan === "day") {
+      // For daily view, show time HH:mm
+      return value;
+    } else if (selectedTimespan === "custom") {
+      // For custom view, format depends on the data being shown
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        // If it's already formatted or ESL data
+        return value.split(' ')[0].slice(0, 3);
+      }
+      // For SDAT data in custom view
+      return date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit"
+      });
+    } else {
+      // For yearly view, show abbreviated month
+      return value.split(' ')[0].slice(0, 3);
+    }
+  };
+
   // Handle timespan change
   const handleTimespanChange = (value: string) => {
     setSelectedTimespan(value)
@@ -236,7 +339,8 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
             <TabsTrigger value="year">Jahr</TabsTrigger>
             <TabsTrigger value="custom">Individuell</TabsTrigger>
           </TabsList>
-        </Tabs><DropdownMenu>
+        </Tabs>
+        <DropdownMenu>
           <DropdownMenuTrigger className="border px-3 py-1 rounded-sm font-medium flex items-center">
             <Download className="h-4 w-4 mr-2" />
             Herunterladen
@@ -259,10 +363,12 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-          >            <ChartContainer config={currentConfig}>
+          >
+            <ChartContainer config={currentConfig}>
               <AreaChart
                 accessibilityLayer
-                data={currentData} margin={{
+                data={currentData}
+                margin={{
                   left: 60,
                   right: 12,
                   top: 20,
@@ -273,18 +379,16 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
                 <CartesianGrid
                   vertical={false}
                   className="stroke-muted-foreground/20"
-                />                <XAxis
+                />
+                <XAxis
                   dataKey="month"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={(value) =>
-                    isSDATData
-                      ? value // Show full time for SDAT data 
-                      : value.split(' ')[0].slice(0, 3) // Show abbreviated month for ESL data
-                  }
+                  tickFormatter={formatXAxisTick}
                   className="fill-muted-foreground"
-                />                <YAxis
+                />
+                <YAxis
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
@@ -298,7 +402,8 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
                   }
                   className="fill-muted-foreground"
                 />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />                <defs>
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <defs>
                   {Object.keys(currentConfig).map((key) => (
                     <linearGradient key={key} id={`fill-${key}`} x1="0" y1="0" x2="0" y2="1">
                       <stop
@@ -313,7 +418,8 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
                       />
                     </linearGradient>
                   ))}
-                </defs>                {Object.keys(currentConfig).map((key) => (
+                </defs>
+                {Object.keys(currentConfig).map((key) => (
                   <Area
                     key={key}
                     dataKey={key}
@@ -321,15 +427,58 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
                     fill={`url(#fill-${key})`}
                     fillOpacity={0.4}
                     stroke={currentConfig[key].color}
-                    stackId="a"
+                    strokeWidth={2}
                     connectNulls={false}
                     baseLine={0}
                   />
                 ))}
               </AreaChart>
-            </ChartContainer>          </motion.div>
+            </ChartContainer>
+          </motion.div>
         </AnimatePresence>
       </CardContent>
     </Card>
   )
+}
+
+// Update the ChartTooltipContent component to show correct data for all views
+function ChartTooltipContent({ active, payload }: { active?: boolean; payload?: any[] }) {
+  if (!active || !payload) return null;
+
+  const data = payload[0]?.payload;
+  if (!data) return null;
+
+  // Determine if we're in SDAT view (monthly/daily) or ESL view (yearly)
+  const isSDATView = data.hasOwnProperty('bezug') || data.hasOwnProperty('einspeisung');
+  const currentConfig: ChartConfig = isSDATView ? sdatConfig : obisConfig;
+
+  return (
+    <div className="rounded-lg bg-white/90 p-4 shadow-lg border border-gray-200 backdrop-blur-sm">
+      <p className="font-semibold mb-2">{data.fullDate || data.month}</p>
+      {payload.map((entry: any) => {
+        const configKey = entry.dataKey as string;
+        const itemConfig = currentConfig[configKey];
+        if (!itemConfig) return null;
+        const value = isSDATView 
+          ? `${entry.value.toFixed(2)} kWh`
+          : `${(entry.value / 1000).toFixed(1)}k kWh`;
+        return (
+          <div key={entry.dataKey} className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm">
+              {itemConfig.label}: {value}
+            </span>
+          </div>
+        );
+      })}
+      {data.totalReadings && (
+        <p className="text-xs text-gray-500 mt-2">
+          Tagessumme aus {data.totalReadings} Messungen
+        </p>
+      )}
+    </div>
+  );
 }

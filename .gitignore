@@ -187,4 +187,5 @@ yarn-debug.log*
 yarn-error.log*
 /.changelog
 .npm/
-backend/data/
+backend/data/esl-data.json
+backend/data/sdat-data.json

@@ -52,14 +52,15 @@ const transformESLData = (data: ESLResponse["esl-data"]) => {
   return data.map((entry) => {
     // Convert ISO date to readable month
     const date = new Date(entry.month)
-    const monthName = date.toLocaleDateString("en-US", {
+    const monthName = date.toLocaleDateString("de-DE", {
       month: "long",
-      year: "2-digit"
+      year: "numeric"
     })
 
     // Create flat object with OBIS values
     const flat: { [key: string]: any } = {
-      month: monthName,
+      month: entry.month, // Use parsable date for axis
+      fullDate: monthName, // Use formatted name for tooltip
       date: entry.month // Keep original date for sorting
     }
 
@@ -116,9 +117,9 @@ const transformSDATData = (data: SDATResponse["sdat-data"]) => {
           timestamp: point.timestamp
         }
       }
-      if (docId === 'ID735') {
+      if (docId.includes('ID735')) {
         allTimePoints[key]['bezug'] = point.volume
-      } else if (docId === 'ID742') {
+      } else if (docId.includes('ID742')) {
         allTimePoints[key]['einspeisung'] = point.volume
       }
     })
@@ -129,51 +130,45 @@ const transformSDATData = (data: SDATResponse["sdat-data"]) => {
 
 // Transform SDAT data for monthly view
 const transformSDATMonthly = (data: SDATResponse["sdat-data"]) => {
-  // Initialize a map to store daily sums
-  const dayMap: { [date: string]: { bezug: number; einspeisung: number; timestamp: number; readings: number } } = {};
+  const dayMap: { [day: string]: { bezug: number; einspeisung: number; timestamp: number; readings: number } } = {};
 
-  // Process each entry in the SDAT data
   data.forEach((entry) => {
     const dateObj = new Date(entry.interval.startDateTime);
-    const dateStr = dateObj.toISOString().split("T")[0];
+    const dayStr = dateObj.toISOString().slice(0, 10); // YYYY-MM-DD
     
-    // Initialize the day entry if it doesn't exist
-    if (!dayMap[dateStr]) {
-      dayMap[dateStr] = {
+    if (!dayMap[dayStr]) {
+      const startOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+      dayMap[dayStr] = {
         bezug: 0,
         einspeisung: 0,
-        timestamp: dateObj.getTime(),
+        timestamp: startOfDay.getTime(),
         readings: 0
       };
     }
 
-    // Sum up all volumes for this day
     if (entry.data) {
       const dailySum = entry.data.reduce((sum: number, point) => sum + point.volume, 0);
-      if (entry.documentID === "ID735") {
-        dayMap[dateStr].bezug += dailySum;
-      } else if (entry.documentID === "ID742") {
-        dayMap[dateStr].einspeisung += dailySum;
+      if (entry.documentID.includes("ID735")) {
+        dayMap[dayStr].bezug += dailySum;
+      } else if (entry.documentID.includes("ID742")) {
+        dayMap[dayStr].einspeisung += dailySum;
       }
-      dayMap[dateStr].readings += entry.data.length;
+      dayMap[dayStr].readings += entry.data.length;
     }
   });
 
-  // Convert the map to an array of daily data points
-  return Object.entries(dayMap).map(([date, vals]) => {
-    const dateObj = new Date(date);
+  return Object.entries(dayMap).map(([day, vals]) => {
+    const [year, monthNum, dayNum] = day.split('-').map(num => parseInt(num, 10));
+    const dateObj = new Date(year, monthNum - 1, dayNum);
+    
     return {
-      month: dateObj.toLocaleDateString("de-DE", { 
-        day: "2-digit",
-        month: "2-digit"
-      }),
+      month: day, // YYYY-MM-DD for formatXAxisTick
       fullDate: dateObj.toLocaleDateString("de-DE", {
-        day: "2-digit",
+        day: "numeric",
         month: "long",
-        year: "numeric",
-        weekday: "long"
+        year: "numeric"
       }),
-      time: dateObj.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }),
+      time: dateObj.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }),
       timestamp: vals.timestamp,
       bezug: +vals.bezug.toFixed(2),
       einspeisung: +vals.einspeisung.toFixed(2),
@@ -219,9 +214,9 @@ export const sdatConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; onTimespanChange?: (timespan: string) => void }) {
+export function ChartComp({ preset = "", onTimespanChange, onConfigChange }: { preset?: string; onTimespanChange?: (timespan: string) => void, onConfigChange?: (config: ChartConfig) => void }) {
   const [currentData, setCurrentData] = useState<any[]>([])
-  const [currentConfig, setCurrentConfig] = useState<ChartConfig>(obisConfig)
+  const [currentConfig, setCurrentConfig] = useState<ChartConfig>(sdatConfig)
   const [selectedTimespan, setSelectedTimespan] = useState("month")
   const [key, setKey] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
@@ -241,7 +236,7 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
         const response = await fetch('/api/data-sdat')
         if (!response.ok) throw new Error('Failed to fetch SDAT data')
         const data: SDATResponse = await response.json()
-        if (timespan === "month" || timespan === "custom") {
+        if (timespan === "month" || timespan === "total") {
           return transformSDATMonthly(data["sdat-data"])
         } else {
           return transformSDATData(data["sdat-data"])
@@ -257,40 +252,80 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
 
   // Function to determine which data to use based on timespan
   const getDataForTimespan = async (timespan: string) => {
-    const data = await fetchData(timespan)
-    // Day view uses daily SDAT data
-    if (timespan === "day") {
-      return { data, config: sdatConfig as ChartConfig }
-    }
-    // Month uses aggregated monthly SDAT data
-    if (timespan === "month") {
-      return { data, config: sdatConfig as ChartConfig }
-    }
-    // Custom view - use SDAT for periods under 3 months, ESL for longer periods
-    if (timespan === "custom") {
-      const sdatDates = data.map((d: any) => new Date(d.timestamp));
-      const minDate = new Date(Math.min(...sdatDates.map(d => d.getTime())));
-      const maxDate = new Date(Math.max(...sdatDates.map(d => d.getTime())));
+    if (timespan === "day" || timespan === "month") {
+      const sdatData = await fetchData(timespan);
       
-      const monthsDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + 
-                        (maxDate.getMonth() - minDate.getMonth());
-      
-      if (monthsDiff < 3) {
-        return { data, config: sdatConfig as ChartConfig }
+      if (sdatData.length === 0) {
+        return { data: [], config: sdatConfig as ChartConfig };
+      }
+
+      if (timespan === "day") {
+        // Find the latest timestamp in the data
+        const latestTimestamp = Math.max(...sdatData.map((d: any) => d.timestamp));
+        const latestDate = new Date(latestTimestamp);
+        
+        const startOfLatestDay = new Date(
+          latestDate.getFullYear(),
+          latestDate.getMonth(),
+          latestDate.getDate()
+        );
+
+        const filteredData = sdatData.filter((d: any) => {
+          const itemDate = new Date(d.timestamp);
+          return itemDate.getTime() >= startOfLatestDay.getTime();
+        });
+        return { data: filteredData, config: sdatConfig as ChartConfig };
+      }
+
+      if (timespan === "month") {
+        const latestTimestamp = Math.max(...sdatData.map((d: any) => d.timestamp));
+        const thirtyDaysBefore = new Date(latestTimestamp);
+        thirtyDaysBefore.setDate(thirtyDaysBefore.getDate() - 30);
+        thirtyDaysBefore.setHours(0, 0, 0, 0);
+
+        const filteredData = sdatData.filter((d: any) => {
+          return d.timestamp >= thirtyDaysBefore.getTime();
+        });
+        return { data: filteredData, config: sdatConfig as ChartConfig };
       }
     }
-    // Year and longer custom periods use ESL data
-    return { data, config: obisConfig as ChartConfig }
+
+    if (timespan === "year") {
+      const eslData = await fetchData("year");
+      return { data: eslData, config: obisConfig as ChartConfig };
+    }
+
+    if (timespan === "total") {
+      const sdatData = await fetchData("total");
+      const sdatTimestamps = sdatData.map((d: any) => d.timestamp);
+
+      if (sdatTimestamps.length > 0) {
+        const minDate = new Date(Math.min(...sdatTimestamps));
+        const maxDate = new Date(Math.max(...sdatTimestamps));
+        const monthsDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 +
+          (maxDate.getMonth() - minDate.getMonth());
+
+        if (monthsDiff < 3) {
+          return { data: sdatData, config: sdatConfig as ChartConfig };
+        }
+      }
+      
+      const eslData = await fetchData("year");
+      return { data: eslData, config: obisConfig as ChartConfig };
+    }
+
+    return { data: [], config: obisConfig };
   }
 
   // For SDAT data (smaller values), use different scaling
-  const isSDATData = selectedTimespan === "day" || selectedTimespan === "month" || selectedTimespan === "custom"
+  const isSDATData = currentConfig.hasOwnProperty('bezug');
 
   useEffect(() => {
     const loadData = async () => {
       const { data, config } = await getDataForTimespan(selectedTimespan)
       setCurrentData(data)
       setCurrentConfig(config)
+      onConfigChange?.(config)
       setKey(prev => prev + 1)
     }
     loadData()
@@ -299,12 +334,8 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
   // Format x-axis ticks based on timespan
   const formatXAxisTick = (value: string) => {
     if (selectedTimespan === "month") {
-      // For monthly view, show only DD.MM
+      // For monthly view (last 30 days of SDAT), show DD.MM
       const date = new Date(value);
-      if (isNaN(date.getTime())) {
-        // If value is already in DD.MM format
-        return value;
-      }
       return date.toLocaleDateString("de-DE", {
         day: "2-digit",
         month: "2-digit"
@@ -312,22 +343,28 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
     } else if (selectedTimespan === "day") {
       // For daily view, show time HH:mm
       return value;
-    } else if (selectedTimespan === "custom") {
-      // For custom view, format depends on the data being shown
+    } else if (selectedTimespan === "total") {
+      // For "total" view, format depends on the data being shown
       const date = new Date(value);
-      if (isNaN(date.getTime())) {
-        // If it's already formatted or ESL data
-        return value.split(' ')[0].slice(0, 3);
+      // When showing daily SDAT data
+      if (currentConfig.hasOwnProperty('bezug')) {
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
       }
-      // For SDAT data in custom view
+      // When showing monthly ESL data
       return date.toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit"
+        month: "2-digit",
+        year: "numeric"
       });
-    } else {
-      // For yearly view, show abbreviated month
-      return value.split(' ')[0].slice(0, 3);
+    } else if (selectedTimespan === "year") {
+      // For yearly view, show abbreviated month from a parsable date string
+      const date = new Date(value);
+      return date.toLocaleDateString("de-DE", { month: "short" });
     }
+    // Fallback for other cases
+    return value;
   };
 
   // Handle timespan change
@@ -392,7 +429,7 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
             <TabsTrigger value="day">Tag</TabsTrigger>
             <TabsTrigger value="month">Monat</TabsTrigger>
             <TabsTrigger value="year">Jahr</TabsTrigger>
-            <TabsTrigger value="custom">Individuell</TabsTrigger>
+            <TabsTrigger value="total">Gesamt</TabsTrigger>
           </TabsList>
         </Tabs>
         <DropdownMenu>

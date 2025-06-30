@@ -57,7 +57,7 @@ export default function UploadPage() {
     const valid: File[] = [];
     const invalidXmlFiles: string[] = [];
     const invalidFormatFiles: string[] = [];
-    
+
     for (const file of dropped) {
       if (!file.name.toLowerCase().endsWith('.xml')) {
         invalidXmlFiles.push(file.name);
@@ -70,22 +70,22 @@ export default function UploadPage() {
       }
       valid.push(file);
     }
-    
+
     // Show consolidated error messages
     if (invalidXmlFiles.length > 0) {
-      const fileList = invalidXmlFiles.length > 3 
+      const fileList = invalidXmlFiles.length > 3
         ? `${invalidXmlFiles.slice(0, 3).join(', ')} und ${invalidXmlFiles.length - 3} weitere`
         : invalidXmlFiles.join(', ');
       alert(`${invalidXmlFiles.length} Datei(en) haben nicht die Endung .xml: ${fileList}`);
     }
-    
+
     if (invalidFormatFiles.length > 0) {
-      const fileList = invalidFormatFiles.length > 3 
+      const fileList = invalidFormatFiles.length > 3
         ? `${invalidFormatFiles.slice(0, 3).join(', ')} und ${invalidFormatFiles.length - 3} weitere`
         : invalidFormatFiles.join(', ');
       alert(`${invalidFormatFiles.length} Datei(en) sind kein gültiges ${fileType.toUpperCase()}-Format: ${fileList}`);
     }
-    
+
     setFiles(prev => [...prev, ...valid]);
   };
 
@@ -96,7 +96,7 @@ export default function UploadPage() {
     const valid: File[] = [];
     const invalidXmlFiles: string[] = [];
     const invalidFormatFiles: string[] = [];
-    
+
     for (const file of Array.from(inputFiles)) {
       if (!file.name.toLowerCase().endsWith('.xml')) {
         invalidXmlFiles.push(file.name);
@@ -109,22 +109,22 @@ export default function UploadPage() {
       }
       valid.push(file);
     }
-    
+
     // Show consolidated error messages
     if (invalidXmlFiles.length > 0) {
-      const fileList = invalidXmlFiles.length > 3 
+      const fileList = invalidXmlFiles.length > 3
         ? `${invalidXmlFiles.slice(0, 3).join(', ')} und ${invalidXmlFiles.length - 3} weitere`
         : invalidXmlFiles.join(', ');
       alert(`${invalidXmlFiles.length} Datei(en) haben nicht die Endung .xml: ${fileList}`);
     }
-    
+
     if (invalidFormatFiles.length > 0) {
-      const fileList = invalidFormatFiles.length > 3 
+      const fileList = invalidFormatFiles.length > 3
         ? `${invalidFormatFiles.slice(0, 3).join(', ')} und ${invalidFormatFiles.length - 3} weitere`
         : invalidFormatFiles.join(', ');
       alert(`${invalidFormatFiles.length} Datei(en) sind kein gültiges ${fileType.toUpperCase()}-Format: ${fileList}`);
     }
-    
+
     setFiles(prev => [...prev, ...valid]);
   };
 
@@ -182,11 +182,10 @@ export default function UploadPage() {
                   key={type}
                   type="button"
                   onClick={() => { setFileType(type); clearAll(); }}
-                  className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
-                    fileType === type
+                  className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${fileType === type
                       ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   {type.toUpperCase()}
                 </button>
@@ -199,11 +198,10 @@ export default function UploadPage() {
             <Label htmlFor="file-input">Dateien auswählen oder per Drag & Drop ablegen</Label>
             <div
               id="file-input"
-              className={`mt-2 border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
-                isDragging
+              className={`mt-2 border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${isDragging
                   ? 'border-primary bg-primary/10'
                   : 'border-gray-300 hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
+                }`}
               onDragEnter={onDragEnter}
               onDragLeave={onDragLeave}
               onDragOver={onDragOver}
@@ -238,14 +236,16 @@ export default function UploadPage() {
           {files.length > 0 && (
             <div className="space-y-2">
               <Label>Ausgewählte Dateien:</Label>
-              <ul className="list-disc list-inside text-sm">
-                {files.map((f, idx) => (
-                  <li key={`${f.name}-${idx}`} className="flex items-center space-x-2">
-                    <FileIcon className="h-4 w-4" />
-                    <span>{f.name}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="max-h-40 overflow-y-auto border rounded-md p-3">
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  {files.map((f, idx) => (
+                    <li key={`${f.name}-${idx}`} className="flex items-center space-x-2">
+                      <FileIcon className="h-4 w-4" />
+                      <span>{f.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           )}
 

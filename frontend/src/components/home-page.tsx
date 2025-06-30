@@ -9,9 +9,17 @@ import {
     SelectValue
 } from "./ui/select"
 
+type ChartConfig = {
+    [key: string]: {
+      label: string
+      color: string
+    }
+  }
+
 export default function HomePage() {
     const [preset, setPreset] = useState<string>("")
     const [currentTimespan, setCurrentTimespan] = useState<string>("month")
+    const [currentConfig, setCurrentConfig] = useState<ChartConfig>(sdatConfig);
 
     const handlePresetChange = (value: string) => {
         setPreset(value)
@@ -19,14 +27,15 @@ export default function HomePage() {
 
     const handleTimespanChange = (timespan: string) => {
         setCurrentTimespan(timespan)
-    }    // Determine which configuration to use for legend
-    // Day, month, and custom use SDAT data; year uses ESL data
-    const isSDATData = currentTimespan === "day" || currentTimespan === "month" || currentTimespan === "custom"
-    const currentConfig = isSDATData ? sdatConfig : obisConfig
+    }
+
+    const handleConfigChange = (config: ChartConfig) => {
+        setCurrentConfig(config);
+    }
 
     return (<div className="h-screen justify-center flex items-center">
         <div className="w-10/12 flex flex-row gap-4">
-            <ChartComp preset={preset} onTimespanChange={handleTimespanChange} />
+            <ChartComp preset={preset} onTimespanChange={handleTimespanChange} onConfigChange={handleConfigChange} />
             <Card className="w-2/12 h-full">
                 <CardHeader>
                     <CardTitle>Diagramm-Optionen</CardTitle>

@@ -11,10 +11,10 @@ import {
 
 type ChartConfig = {
     [key: string]: {
-      label: string
-      color: string
+        label: string
+        color: string
     }
-  }
+}
 
 export default function HomePage() {
     const [preset, setPreset] = useState<string>("")
@@ -33,42 +33,45 @@ export default function HomePage() {
         setCurrentConfig(config);
     }
 
-    return (<div className="h-screen justify-center flex items-center">
-        <div className="w-10/12 flex flex-row gap-4">
-            <ChartComp preset={preset} onTimespanChange={handleTimespanChange} onConfigChange={handleConfigChange} />
-            <Card className="w-2/12 h-full">
-                <CardHeader>
-                    <CardTitle>Diagramm-Optionen</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Select value={preset} onValueChange={handlePresetChange}>
-                        <SelectTrigger className="w-full mb-4">
-                            <SelectValue placeholder="Preset auswählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="purchaseHighTariff">Einkauf Hochtarif</SelectItem>
-                            <SelectItem value="purchaseLowTariff">Einkauf Niedertarif</SelectItem>
-                            <SelectItem value="feedInHighTariff">Einspeisung Hochtarif</SelectItem>
-                            <SelectItem value="feedInLowTariff">Einspeisung Niedertarif</SelectItem>
-                            <SelectItem value="purchase">Einkauf</SelectItem>
-                            <SelectItem value="feedIn">Einspeisung</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <div className="mt-6">
-                        <h3 className="font-semibold text-sm mb-2">Legende</h3>
-                        {Object.entries(currentConfig).map(([key, config]) => (
-                            <div key={key} className="flex items-center mb-2">
-                                <div
-                                    className="w-3 h-3 rounded-full mr-2"
-                                    style={{ backgroundColor: config.color }}
-                                />
-                                <span className="text-sm">{config.label}</span>
+    return (
+        <div className="min-h-screen pt-20">
+            <div className="flex xl:flex-row flex-col-reverse gap-4 mb-10 px-8 max-w-7xl mx-auto">
+                <ChartComp preset={preset} onTimespanChange={handleTimespanChange} onConfigChange={handleConfigChange} className="xl:w-10/12 w-full" />
+                <Card className="xl:w-2/12 w-full h-full">
+                    <CardContent className="flex xl:flex-col flex-row items-center gap-8 xl:gap-4">
+                        <CardTitle>Diagramm-Optionen</CardTitle>
+                        <div className="flex-shrink-0">
+                            <Select value={preset} onValueChange={handlePresetChange}>
+                                <SelectTrigger className="xl:w-full w-[200px]">
+                                    <SelectValue placeholder="Preset auswählen" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="purchaseHighTariff">Einkauf Hochtarif</SelectItem>
+                                    <SelectItem value="purchaseLowTariff">Einkauf Niedertarif</SelectItem>
+                                    <SelectItem value="feedInHighTariff">Einspeisung Hochtarif</SelectItem>
+                                    <SelectItem value="feedInLowTariff">Einspeisung Niedertarif</SelectItem>
+                                    <SelectItem value="purchase">Einkauf</SelectItem>
+                                    <SelectItem value="feedIn">Einspeisung</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="xl:mt-4">
+                            <h3 className="font-semibold text-sm mb-2 xl:block hidden">Legende</h3>
+                            <div className="flex flex-row flex-wrap gap-4">
+                                {Object.entries(currentConfig).map(([key, config]) => (
+                                    <div key={key} className="flex items-center">
+                                        <div
+                                            className="w-3 h-3 rounded-full mr-2"
+                                            style={{ backgroundColor: config.color }}
+                                        />
+                                        <span className="text-sm whitespace-nowrap">{config.label}</span>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
-    </div>
     )
 }

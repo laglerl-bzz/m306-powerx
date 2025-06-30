@@ -13,6 +13,7 @@ import { Download, BarChart3 } from "lucide-react"
 import { eslBigData } from "../data-esl-big"
 import { sdatBig } from "../data-sdat-big"
 import { sdatMonthlyData as sdatMonthlyDataFile } from "../data-sdat-monthly"
+import { cn } from "@/lib/utils"
 
 type ChartConfig = {
   [key: string]: {
@@ -214,7 +215,7 @@ export const sdatConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartComp({ preset = "", onTimespanChange, onConfigChange }: { preset?: string; onTimespanChange?: (timespan: string) => void, onConfigChange?: (config: ChartConfig) => void }) {
+export function ChartComp({ preset = "", onTimespanChange, onConfigChange, className }: { preset?: string; onTimespanChange?: (timespan: string) => void, onConfigChange?: (config: ChartConfig) => void, className?: string }) {
   const [currentData, setCurrentData] = useState<any[]>([])
   const [currentConfig, setCurrentConfig] = useState<ChartConfig>(sdatConfig)
   const [selectedTimespan, setSelectedTimespan] = useState("month")
@@ -419,7 +420,7 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange }: { p
     document.body.removeChild(link);
   };
   return (
-    <Card className="w-10/12">
+    <Card className={cn("w-10/12", className)}>
       <CardHeader className="flex justify-between items-center">
         <CardTitle>
           {isSDATData ? "Verbrauchsdiagramm" : "Leistungsdiagramm"}

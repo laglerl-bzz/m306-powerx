@@ -9,7 +9,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion, AnimatePresence } from "framer-motion"
-import { Download } from "lucide-react"
+import { Download, BarChart3 } from "lucide-react"
 import { eslBigData } from "../data-esl-big"
 import { sdatBig } from "../data-sdat-big"
 import { sdatMonthlyData as sdatMonthlyDataFile } from "../data-sdat-monthly"
@@ -418,6 +418,22 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
         ) : error ? (
           <div className="flex justify-center items-center h-[400px] text-destructive">
             {error}
+          </div>
+        ) : currentData.length === 0 ? (
+          <div className="flex flex-col justify-center items-center h-[400px] text-muted-foreground">
+            <div className="text-center space-y-3">
+              <div className="mb-4">
+                <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-semibold">Keine Daten verfügbar</h3>
+              <p className="text-sm max-w-md">
+                Es sind noch keine {isSDATData ? 'SDAT' : 'ESL'}-Daten vorhanden. 
+                Bitte laden Sie zunächst entsprechende Dateien über die Upload-Seite hoch.
+              </p>
+              <div className="mt-4 p-3 bg-muted rounded-lg text-xs">
+                <strong>Hinweis:</strong> {isSDATData ? 'SDAT' : 'ESL'}-Dateien werden für die {isSDATData ? 'Tages- und Monatsansicht' : 'Jahresansicht'} benötigt.
+              </div>
+            </div>
           </div>
         ) : (
           <AnimatePresence mode="wait">

@@ -88,7 +88,9 @@ def parse_esl_file(xml_string: str) -> Dict[str, Any]:
                 continue
             if obis in ALLOWED_OBIS and value is not None:
                 values.append({"obis": obis, "value": value})
-        entries.append({"month": month, "data": values})
+        # Only add entries that have actual data
+        if values:
+            entries.append({"month": month, "data": values})
 
     return {"esl-data": entries}
 
@@ -150,5 +152,4 @@ def convert_input(input_data: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
 
-    print(result)
     return result

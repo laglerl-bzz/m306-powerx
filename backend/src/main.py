@@ -76,7 +76,16 @@ def save_batch(file_type: str, batch: Dict[str, Any]):
     for entry in to_add:
         if file_type == "sdat" and not is_valid_sdat_entry(entry):
             continue
-        if entry not in existing:
+        
+        # For ESL files, check for duplicates by month
+        if file_type == "esl":
+            month = entry.get("month")
+            # Check if this month already exists
+            month_exists = any(existing_entry.get("month") == month for existing_entry in existing)
+            if not month_exists:
+                existing.append(entry)
+        # For SDAT files, use the original logic
+        elif entry not in existing:
             existing.append(entry)
 
     # Write back

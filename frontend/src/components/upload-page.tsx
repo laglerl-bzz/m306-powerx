@@ -55,18 +55,37 @@ export default function UploadPage() {
 
     const dropped = Array.from(e.dataTransfer.files);
     const valid: File[] = [];
+    const invalidXmlFiles: string[] = [];
+    const invalidFormatFiles: string[] = [];
+    
     for (const file of dropped) {
       if (!file.name.toLowerCase().endsWith('.xml')) {
-        alert(`Datei ${file.name} hat nicht die Endung .xml`);
+        invalidXmlFiles.push(file.name);
         continue;
       }
       const ok = await validateFile(file);
       if (!ok) {
-        alert(`Datei ${file.name} ist kein gültiges ${fileType.toUpperCase()}-Format`);
+        invalidFormatFiles.push(file.name);
         continue;
       }
       valid.push(file);
     }
+    
+    // Show consolidated error messages
+    if (invalidXmlFiles.length > 0) {
+      const fileList = invalidXmlFiles.length > 3 
+        ? `${invalidXmlFiles.slice(0, 3).join(', ')} und ${invalidXmlFiles.length - 3} weitere`
+        : invalidXmlFiles.join(', ');
+      alert(`${invalidXmlFiles.length} Datei(en) haben nicht die Endung .xml: ${fileList}`);
+    }
+    
+    if (invalidFormatFiles.length > 0) {
+      const fileList = invalidFormatFiles.length > 3 
+        ? `${invalidFormatFiles.slice(0, 3).join(', ')} und ${invalidFormatFiles.length - 3} weitere`
+        : invalidFormatFiles.join(', ');
+      alert(`${invalidFormatFiles.length} Datei(en) sind kein gültiges ${fileType.toUpperCase()}-Format: ${fileList}`);
+    }
+    
     setFiles(prev => [...prev, ...valid]);
   };
 
@@ -75,18 +94,37 @@ export default function UploadPage() {
     if (!inputFiles) return;
 
     const valid: File[] = [];
+    const invalidXmlFiles: string[] = [];
+    const invalidFormatFiles: string[] = [];
+    
     for (const file of Array.from(inputFiles)) {
       if (!file.name.toLowerCase().endsWith('.xml')) {
-        alert(`Datei ${file.name} hat nicht die Endung .xml`);
+        invalidXmlFiles.push(file.name);
         continue;
       }
       const ok = await validateFile(file);
       if (!ok) {
-        alert(`Datei ${file.name} ist kein gültiges ${fileType.toUpperCase()}-Format`);
+        invalidFormatFiles.push(file.name);
         continue;
       }
       valid.push(file);
     }
+    
+    // Show consolidated error messages
+    if (invalidXmlFiles.length > 0) {
+      const fileList = invalidXmlFiles.length > 3 
+        ? `${invalidXmlFiles.slice(0, 3).join(', ')} und ${invalidXmlFiles.length - 3} weitere`
+        : invalidXmlFiles.join(', ');
+      alert(`${invalidXmlFiles.length} Datei(en) haben nicht die Endung .xml: ${fileList}`);
+    }
+    
+    if (invalidFormatFiles.length > 0) {
+      const fileList = invalidFormatFiles.length > 3 
+        ? `${invalidFormatFiles.slice(0, 3).join(', ')} und ${invalidFormatFiles.length - 3} weitere`
+        : invalidFormatFiles.join(', ');
+      alert(`${invalidFormatFiles.length} Datei(en) sind kein gültiges ${fileType.toUpperCase()}-Format: ${fileList}`);
+    }
+    
     setFiles(prev => [...prev, ...valid]);
   };
 
@@ -232,13 +270,6 @@ export default function UploadPage() {
               Serverdaten löschen
             </Button>
           </div>
-
-          {/* Result */}
-          {result && (
-            <pre className="mt-4 bg-gray-100 p-4 rounded text-xs overflow-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
-          )}
         </CardContent>
       </Card>
     </div>

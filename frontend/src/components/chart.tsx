@@ -21,9 +21,35 @@ type ChartConfig = {
   }
 }
 
+// Types for API responses
+interface SDATResponse {
+  "sdat-data": Array<{
+    documentID: string;
+    interval: {
+      startDateTime: string;
+      endDateTime: string;
+    };
+    resolution: number;
+    data: Array<{
+      sequence: number;
+      volume: number;
+    }>;
+  }>;
+}
+
+interface ESLResponse {
+  "esl-data": Array<{
+    month: string;
+    data: Array<{
+      obis: string;
+      value: number;
+    }>;
+  }>;
+}
+
 // Transform ESL data to chart format
-const transformESLData = () => {
-  return eslBigData["esl-data"].map((entry) => {
+const transformESLData = (data: ESLResponse["esl-data"]) => {
+  return data.map((entry) => {
     // Convert ISO date to readable month
     const date = new Date(entry.month)
     const monthName = date.toLocaleDateString("en-US", {
@@ -46,11 +72,11 @@ const transformESLData = () => {
 }
 
 // Transform SDAT data to chart format
-const transformSDATData = () => {
+const transformSDATData = (data: SDATResponse["sdat-data"]) => {
   // Group data by documentID to separate feed-in and feed-out
   const groupedData: { [key: string]: any[] } = {}
 
-  sdatBig["sdat-data"].forEach((entry) => {
+  data.forEach((entry) => {
     if (!groupedData[entry.documentID]) {
       groupedData[entry.documentID] = []
     }
@@ -85,12 +111,11 @@ const transformSDATData = () => {
       const key = point.time
       if (!allTimePoints[key]) {
         allTimePoints[key] = {
-          month: point.time, // Using 'month' as the x-axis key for consistency
+          month: point.time,
           time: point.time,
           timestamp: point.timestamp
         }
       }
-      // ID735 = Bezug (Purchase), ID742 = Einspeisung (Feed-in)
       if (docId === 'ID735') {
         allTimePoints[key]['bezug'] = point.volume
       } else if (docId === 'ID742') {
@@ -99,17 +124,16 @@ const transformSDATData = () => {
     })
   })
 
-  // Convert to array and sort by timestamp
   return Object.values(allTimePoints).sort((a: any, b: any) => a.timestamp - b.timestamp)
 }
 
-// Transform SDAT data for monthly view using sdatMonthlyData
-const transformSDATMonthly = () => {
+// Transform SDAT data for monthly view
+const transformSDATMonthly = (data: SDATResponse["sdat-data"]) => {
   // Initialize a map to store daily sums
   const dayMap: { [date: string]: { bezug: number; einspeisung: number; timestamp: number; readings: number } } = {};
 
   // Process each entry in the SDAT data
-  sdatMonthlyDataFile["sdat-data"].forEach((entry: any) => {
+  data.forEach((entry) => {
     const dateObj = new Date(entry.interval.startDateTime);
     const dateStr = dateObj.toISOString().split("T")[0];
     
@@ -125,7 +149,7 @@ const transformSDATMonthly = () => {
 
     // Sum up all volumes for this day
     if (entry.data) {
-      const dailySum = entry.data.reduce((sum: number, point: any) => sum + point.volume, 0);
+      const dailySum = entry.data.reduce((sum: number, point) => sum + point.volume, 0);
       if (entry.documentID === "ID735") {
         dayMap[dateStr].bezug += dailySum;
       } else if (entry.documentID === "ID742") {
@@ -159,9 +183,9 @@ const transformSDATMonthly = () => {
 }
 
 // Get transformed data
-const eslTransformedData = transformESLData()
-const sdatTransformedData = transformSDATData()
-const sdatMonthlyData = transformSDATMonthly()
+const eslTransformedData = transformESLData(eslBigData["esl-data"])
+const sdatTransformedData = transformSDATData(sdatBig["sdat-data"])
+const sdatMonthlyData = transformSDATMonthly(sdatBig["sdat-data"])
 
 // OBIS code mappings for ESL data
 export const obisConfig = {
@@ -196,49 +220,80 @@ export const sdatConfig = {
 } satisfies ChartConfig
 
 export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; onTimespanChange?: (timespan: string) => void }) {
-  const [currentData, setCurrentData] = useState(eslTransformedData)
+  const [currentData, setCurrentData] = useState<any[]>([])
   const [currentConfig, setCurrentConfig] = useState<ChartConfig>(obisConfig)
   const [selectedTimespan, setSelectedTimespan] = useState("month")
-  const [key, setKey] = useState(0) // Key for forcing animation on data change  
+  const [key, setKey] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Function to fetch data from the API
+  const fetchData = async (timespan: string) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      if (timespan === "year") {
+        const response = await fetch('/api/data-esl')
+        if (!response.ok) throw new Error('Failed to fetch ESL data')
+        const data: ESLResponse = await response.json()
+        return transformESLData(data["esl-data"])
+      } else {
+        const response = await fetch('/api/data-sdat')
+        if (!response.ok) throw new Error('Failed to fetch SDAT data')
+        const data: SDATResponse = await response.json()
+        if (timespan === "month" || timespan === "custom") {
+          return transformSDATMonthly(data["sdat-data"])
+        } else {
+          return transformSDATData(data["sdat-data"])
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      return []
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Function to determine which data to use based on timespan
-  const getDataForTimespan = (timespan: string) => {
+  const getDataForTimespan = async (timespan: string) => {
+    const data = await fetchData(timespan)
     // Day view uses daily SDAT data
     if (timespan === "day") {
-      return { data: sdatTransformedData, config: sdatConfig as ChartConfig }
+      return { data, config: sdatConfig as ChartConfig }
     }
     // Month uses aggregated monthly SDAT data
     if (timespan === "month") {
-      return { data: sdatMonthlyData, config: sdatConfig as ChartConfig }
+      return { data, config: sdatConfig as ChartConfig }
     }
     // Custom view - use SDAT for periods under 3 months, ESL for longer periods
     if (timespan === "custom") {
-      // Get the date range of the data
-      const sdatDates = sdatMonthlyData.map(d => new Date(d.timestamp));
+      const sdatDates = data.map((d: any) => new Date(d.timestamp));
       const minDate = new Date(Math.min(...sdatDates.map(d => d.getTime())));
       const maxDate = new Date(Math.max(...sdatDates.map(d => d.getTime())));
       
-      // Calculate the difference in months
       const monthsDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + 
                         (maxDate.getMonth() - minDate.getMonth());
       
-      // Use SDAT data for periods under 3 months
       if (monthsDiff < 3) {
-        return { data: sdatMonthlyData, config: sdatConfig as ChartConfig }
+        return { data, config: sdatConfig as ChartConfig }
       }
     }
     // Year and longer custom periods use ESL data
-    return { data: eslTransformedData, config: obisConfig as ChartConfig }
+    return { data, config: obisConfig as ChartConfig }
   }
 
   // For SDAT data (smaller values), use different scaling
   const isSDATData = selectedTimespan === "day" || selectedTimespan === "month" || selectedTimespan === "custom"
 
   useEffect(() => {
-    const { data, config } = getDataForTimespan(selectedTimespan)
-    setCurrentData(data)
-    setCurrentConfig(config)
-    setKey(prev => prev + 1) // Update key to trigger animation
+    const loadData = async () => {
+      const { data, config } = await getDataForTimespan(selectedTimespan)
+      setCurrentData(data)
+      setCurrentConfig(config)
+      setKey(prev => prev + 1)
+    }
+    loadData()
   }, [selectedTimespan, preset])
 
   // Format x-axis ticks based on timespan
@@ -356,86 +411,96 @@ export function ChartComp({ preset = "", onTimespanChange }: { preset?: string; 
         </DropdownMenu>
       </CardHeader>
       <CardContent>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={key}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ChartContainer config={currentConfig}>
-              <AreaChart
-                accessibilityLayer
-                data={currentData}
-                margin={{
-                  left: 60,
-                  right: 12,
-                  top: 20,
-                  bottom: 5
-                }}
-                height={400}
-              >
-                <CartesianGrid
-                  vertical={false}
-                  className="stroke-muted-foreground/20"
-                />
-                <XAxis
-                  dataKey="month"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={formatXAxisTick}
-                  className="fill-muted-foreground"
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickCount={6}
-                  domain={[0, 'dataMax']}
-                  allowDataOverflow={false}
-                  tickFormatter={(value) =>
-                    isSDATData
-                      ? `${value.toFixed(1)} kWh`
-                      : `${(value / 1000).toFixed(1)}k kWh`
-                  }
-                  className="fill-muted-foreground"
-                />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <defs>
-                  {Object.keys(currentConfig).map((key) => (
-                    <linearGradient key={key} id={`fill-${key}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="5%"
-                        stopColor={currentConfig[key].color}
-                        stopOpacity={0.8}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={currentConfig[key].color}
-                        stopOpacity={0.1}
-                      />
-                    </linearGradient>
-                  ))}
-                </defs>
-                {Object.keys(currentConfig).map((key) => (
-                  <Area
-                    key={key}
-                    dataKey={key}
-                    type="monotone"
-                    fill={`url(#fill-${key})`}
-                    fillOpacity={0.4}
-                    stroke={currentConfig[key].color}
-                    strokeWidth={2}
-                    connectNulls={false}
-                    baseLine={0}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-[400px] text-destructive">
+            {error}
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={key}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChartContainer config={currentConfig}>
+                <AreaChart
+                  accessibilityLayer
+                  data={currentData}
+                  margin={{
+                    left: 60,
+                    right: 12,
+                    top: 20,
+                    bottom: 5
+                  }}
+                  height={400}
+                >
+                  <CartesianGrid
+                    vertical={false}
+                    className="stroke-muted-foreground/20"
                   />
-                ))}
-              </AreaChart>
-            </ChartContainer>
-          </motion.div>
-        </AnimatePresence>
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={formatXAxisTick}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickCount={6}
+                    domain={[0, 'dataMax']}
+                    allowDataOverflow={false}
+                    tickFormatter={(value) =>
+                      isSDATData
+                        ? `${value.toFixed(1)} kWh`
+                        : `${(value / 1000).toFixed(1)}k kWh`
+                    }
+                    className="fill-muted-foreground"
+                  />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <defs>
+                    {Object.keys(currentConfig).map((key) => (
+                      <linearGradient key={key} id={`fill-${key}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop
+                          offset="5%"
+                          stopColor={currentConfig[key].color}
+                          stopOpacity={0.8}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor={currentConfig[key].color}
+                          stopOpacity={0.1}
+                        />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  {Object.keys(currentConfig).map((key) => (
+                    <Area
+                      key={key}
+                      dataKey={key}
+                      type="monotone"
+                      fill={`url(#fill-${key})`}
+                      fillOpacity={0.4}
+                      stroke={currentConfig[key].color}
+                      strokeWidth={2}
+                      connectNulls={false}
+                      baseLine={0}
+                    />
+                  ))}
+                </AreaChart>
+              </ChartContainer>
+            </motion.div>
+          </AnimatePresence>
+        )}
       </CardContent>
     </Card>
   )

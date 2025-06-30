@@ -215,6 +215,16 @@ export const sdatConfig = {
   },
 } satisfies ChartConfig
 
+// Map options to datafiels 
+const presetKeyMap: { [key: string]: string[] } = {
+  purchaseHighTariff: ["1-1:1.8.1"],
+  purchaseLowTariff: ["1-1:1.8.2"],
+  feedInHighTariff: ["1-1:2.8.1"],
+  feedInLowTariff: ["1-1:2.8.2"],
+  purchase: ["bezug"],
+  feedIn: ["einspeisung"],
+}
+
 export function ChartComp({ preset = "", onTimespanChange, onConfigChange, className }: { preset?: string; onTimespanChange?: (timespan: string) => void, onConfigChange?: (config: ChartConfig) => void, className?: string }) {
   const [currentData, setCurrentData] = useState<any[]>([])
   const [currentConfig, setCurrentConfig] = useState<ChartConfig>(sdatConfig)
@@ -322,15 +332,41 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
   const isSDATData = currentConfig.hasOwnProperty('bezug');
 
   useEffect(() => {
-    const loadData = async () => {
-      const { data, config } = await getDataForTimespan(selectedTimespan)
-      setCurrentData(data)
-      setCurrentConfig(config)
-      onConfigChange?.(config)
-      setKey(prev => prev + 1)
+  const loadData = async () => {
+    const { data, config } = await getDataForTimespan(selectedTimespan)
+
+    // Standardmäßig alles verwenden
+    let filteredData = data
+    let filteredConfig = config
+
+    // Wenn ein gültiger preset gesetzt ist, filtere entsprechend
+    if (preset && presetKeyMap[preset]) {
+      const keys = presetKeyMap[preset]
+
+      // Konfiguration auf ausgewählte Datenreihen begrenzen
+      filteredConfig = Object.fromEntries(
+        Object.entries(config).filter(([key]) => keys.includes(key))
+      ) as typeof sdatConfig | typeof obisConfig
+
+      // Nur die relevanten Werte aus jedem Eintrag behalten
+      filteredData = data.map(entry => {
+        const newEntry: any = {}
+        for (const key of ["month", "fullDate", "timestamp", "time", "totalReadings", ...keys]) {
+          if (entry[key] !== undefined) newEntry[key] = entry[key]
+        }
+        return newEntry
+      })
     }
-    loadData()
-  }, [selectedTimespan, preset])
+
+    setCurrentData(filteredData)
+    setCurrentConfig(filteredConfig)
+    onConfigChange?.(filteredConfig)
+    setKey(prev => prev + 1)
+  }
+
+  loadData()
+}, [selectedTimespan, preset])
+
 
   // Format x-axis ticks based on timespan
   const formatXAxisTick = (value: string) => {

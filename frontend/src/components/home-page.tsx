@@ -43,14 +43,15 @@ export default function HomePage() {
                         <div className="flex-shrink-0">
                             <Select value={preset} onValueChange={handlePresetChange}>
                                 <SelectTrigger className="xl:w-full w-[200px]">
-                                    <SelectValue placeholder="Preset auswählen" />
+                                    <SelectValue placeholder="Darstellung auswählen" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="purchaseHighTariff">Einkauf Hochtarif</SelectItem>
-                                    <SelectItem value="purchaseLowTariff">Einkauf Niedertarif</SelectItem>
+                                    <SelectItem value=" ">Standard</SelectItem>
+                                    <SelectItem value="purchaseHighTariff">Bezug Hochtarif</SelectItem>
+                                    <SelectItem value="purchaseLowTariff">Bezug Niedertarif</SelectItem>
                                     <SelectItem value="feedInHighTariff">Einspeisung Hochtarif</SelectItem>
                                     <SelectItem value="feedInLowTariff">Einspeisung Niedertarif</SelectItem>
-                                    <SelectItem value="purchase">Einkauf</SelectItem>
+                                    <SelectItem value="purchase">Bezug</SelectItem>
                                     <SelectItem value="feedIn">Einspeisung</SelectItem>
                                 </SelectContent>
                             </Select>

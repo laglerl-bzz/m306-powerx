@@ -136,7 +136,7 @@ const transformSDATMonthly = (data: SDATResponse["sdat-data"]) => {
   data.forEach((entry) => {
     const dateObj = new Date(entry.interval.startDateTime);
     const dayStr = dateObj.toISOString().slice(0, 10); // YYYY-MM-DD
-    
+
     if (!dayMap[dayStr]) {
       const startOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
       dayMap[dayStr] = {
@@ -161,7 +161,7 @@ const transformSDATMonthly = (data: SDATResponse["sdat-data"]) => {
   return Object.entries(dayMap).map(([day, vals]) => {
     const [year, monthNum, dayNum] = day.split('-').map(num => parseInt(num, 10));
     const dateObj = new Date(year, monthNum - 1, dayNum);
-    
+
     return {
       month: day, // YYYY-MM-DD for formatXAxisTick
       fullDate: dateObj.toLocaleDateString("de-DE", {
@@ -265,7 +265,7 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
   const getDataForTimespan = async (timespan: string) => {
     if (timespan === "day" || timespan === "month") {
       const sdatData = await fetchData(timespan);
-      
+
       if (sdatData.length === 0) {
         return { data: [], config: sdatConfig as ChartConfig };
       }
@@ -274,7 +274,7 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
         // Find the latest timestamp in the data
         const latestTimestamp = Math.max(...sdatData.map((d: any) => d.timestamp));
         const latestDate = new Date(latestTimestamp);
-        
+
         const startOfLatestDay = new Date(
           latestDate.getFullYear(),
           latestDate.getMonth(),
@@ -303,26 +303,52 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
 
     if (timespan === "year") {
       const eslData = await fetchData("year");
-      return { data: eslData, config: obisConfig as ChartConfig };
+      if (eslData.length === 0) {
+        return { data: [], config: obisConfig as ChartConfig, error: null };
+      }
+      // Get all unique months, sorted ascending
+      const uniqueMonths = Array.from(
+        new Set(eslData.map((d: any) => d.month.slice(0, 7)))
+      ).sort();
+      if (uniqueMonths.length < 2) {
+        // Not enough data for a year
+        return { data: [], config: obisConfig as ChartConfig, error: "Es gibt zu wenig Daten, um einen vernünftigen Graphen darzustellen. Bitte fügen Sie mehr Daten hinzu." };
+      }
+      // Only consider the last 12 months
+      const last12Months = uniqueMonths.slice(-12);
+      // Check if these 12 months are consecutive
+      let consecutive = true;
+      for (let i = 1; i < last12Months.length; i++) {
+        const [prevY, prevM] = last12Months[i - 1].split('-').map(Number);
+        const [currY, currM] = last12Months[i].split('-').map(Number);
+        const diff = (currY - prevY) * 12 + (currM - prevM);
+        if (diff !== 1) {
+          consecutive = false;
+          console.log(i)
+          break;
+        }
+      }
+      if (!consecutive || last12Months.length < 12) {
+        return { data: [], config: obisConfig as ChartConfig, error: "Es gibt zu wenig Daten, um einen vernünftigen Graphen darzustellen. Bitte fügen Sie mehr Daten hinzu." };
+      }
+      // Filter data to only those months
+      const filteredData = eslData.filter((d: any) => last12Months.includes(d.month.slice(0, 7)));
+      // Sort filtered data by month ascending
+      filteredData.sort((a: any, b: any) => a.month.localeCompare(b.month));
+      return { data: filteredData, config: obisConfig as ChartConfig, error: null };
     }
 
     if (timespan === "total") {
-      const sdatData = await fetchData("total");
-      const sdatTimestamps = sdatData.map((d: any) => d.timestamp);
-
-      if (sdatTimestamps.length > 0) {
-        const minDate = new Date(Math.min(...sdatTimestamps));
-        const maxDate = new Date(Math.max(...sdatTimestamps));
-        const monthsDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 +
-          (maxDate.getMonth() - minDate.getMonth());
-
-        if (monthsDiff < 3) {
-          return { data: sdatData, config: sdatConfig as ChartConfig };
-        }
-      }
-      
       const eslData = await fetchData("year");
-      return { data: eslData, config: obisConfig as ChartConfig };
+      // Get all unique months in ESL data
+      const uniqueMonths = Array.from(new Set(eslData.map((d: any) => d.month))).sort();
+      if (uniqueMonths.length >= 3) {
+        // Use ESL data if there are at least 3 months
+        return { data: eslData, config: obisConfig as ChartConfig };
+      }
+      // Otherwise, use SDAT data
+      const sdatData = await fetchData("total");
+      return { data: sdatData, config: sdatConfig as ChartConfig };
     }
 
     return { data: [], config: obisConfig };
@@ -332,50 +358,43 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
   const isSDATData = currentConfig.hasOwnProperty('bezug');
 
   useEffect(() => {
-  const loadData = async () => {
-    const { data, config } = await getDataForTimespan(selectedTimespan)
-
-    // Standardmäßig alles verwenden
-    let filteredData = data
-    let filteredConfig = config
-
-    // Wenn ein gültiger preset gesetzt ist, filtere entsprechend
-    if (preset && presetKeyMap[preset]) {
-      const keys = presetKeyMap[preset]
-
-      // Konfiguration auf ausgewählte Datenreihen begrenzen
-      filteredConfig = Object.fromEntries(
-        Object.entries(config).filter(([key]) => keys.includes(key))
-      ) as typeof sdatConfig | typeof obisConfig
-
-      // Nur die relevanten Werte aus jedem Eintrag behalten
-      filteredData = data.map(entry => {
-        const newEntry: any = {}
-        for (const key of ["month", "fullDate", "timestamp", "time", "totalReadings", ...keys]) {
-          if (entry[key] !== undefined) newEntry[key] = entry[key]
-        }
-        return newEntry
-      })
+    const loadData = async () => {
+      const result = await getDataForTimespan(selectedTimespan)
+      const { data, config, error: customError } = result
+      let filteredData = data
+      let filteredConfig = config
+      if (preset && presetKeyMap[preset]) {
+        const keys = presetKeyMap[preset]
+        filteredConfig = Object.fromEntries(
+          Object.entries(config).filter(([key]) => keys.includes(key))
+        ) as typeof sdatConfig | typeof obisConfig
+        filteredData = data.map(entry => {
+          const newEntry: any = {}
+          for (const key of ["month", "fullDate", "timestamp", "time", "totalReadings", ...keys]) {
+            if (entry[key] !== undefined) newEntry[key] = entry[key]
+          }
+          return newEntry
+        })
+      }
+      setCurrentData(filteredData)
+      setCurrentConfig(filteredConfig)
+      setError(customError || null)
+      onConfigChange?.(filteredConfig)
+      setKey(prev => prev + 1)
     }
-
-    setCurrentData(filteredData)
-    setCurrentConfig(filteredConfig)
-    onConfigChange?.(filteredConfig)
-    setKey(prev => prev + 1)
-  }
-
-  loadData()
-}, [selectedTimespan, preset])
+    loadData()
+  }, [selectedTimespan, preset])
 
 
   // Format x-axis ticks based on timespan
   const formatXAxisTick = (value: string) => {
     if (selectedTimespan === "month") {
-      // For monthly view (last 30 days of SDAT), show DD.MM
+      // For monthly view (last 30 days of SDAT), show DD.MM.YYYY
       const date = new Date(value);
       return date.toLocaleDateString("de-DE", {
         day: "2-digit",
-        month: "2-digit"
+        month: "2-digit",
+        year: "2-digit"
       });
     } else if (selectedTimespan === "day") {
       // For daily view, show time HH:mm
@@ -501,7 +520,7 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
               </div>
               <h3 className="text-lg font-semibold">Keine Daten verfügbar</h3>
               <p className="text-sm max-w-md">
-                Es sind noch keine {isSDATData ? 'SDAT' : 'ESL'}-Daten vorhanden. 
+                Es sind noch keine {isSDATData ? 'SDAT' : 'ESL'}-Daten vorhanden.
                 Bitte laden Sie zunächst entsprechende Dateien über die Upload-Seite hoch.
               </p>
               <div className="mt-4 p-3 bg-muted rounded-lg text-xs">
@@ -608,13 +627,13 @@ function ChartTooltipContent({ active, payload }: { active?: boolean; payload?: 
   const currentConfig: ChartConfig = isSDATView ? sdatConfig : obisConfig;
 
   return (
-    <div className="rounded-lg bg-white/90 p-4 shadow-lg border border-gray-200 backdrop-blur-sm">
+    <div className="rounded-lg bg-white/25 dark:bg-black/25 p-4 shadow-lg border border-gray-200 backdrop-blur-sm">
       <p className="font-semibold mb-2">{data.fullDate || data.month}</p>
       {payload.map((entry: any) => {
         const configKey = entry.dataKey as string;
         const itemConfig = currentConfig[configKey];
         if (!itemConfig) return null;
-        const value = isSDATView 
+        const value = isSDATView
           ? `${entry.value.toFixed(2)} kWh`
           : `${(entry.value / 1000).toFixed(1)}k kWh`;
         return (

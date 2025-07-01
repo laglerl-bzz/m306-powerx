@@ -37,10 +37,10 @@ export default function HomePage() {
         <div className="min-h-screen pt-20">
             <div className="flex xl:flex-row flex-col-reverse gap-4 mb-10 px-8 max-w-7xl mx-auto">
                 <ChartComp preset={preset} onTimespanChange={handleTimespanChange} onConfigChange={handleConfigChange} className="xl:w-10/12 w-full" />
-                <Card className="xl:w-2/12 w-full h-full">
+                <Card className="xl:w-2/12 w-full xl:h-fit h-full">
                     <CardContent className="flex xl:flex-col flex-row items-center gap-8 xl:gap-4">
                         <CardTitle>Diagramm-Optionen</CardTitle>
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 xl:w-full">
                             <Select value={preset} onValueChange={handlePresetChange}>
                                 <SelectTrigger className="xl:w-full w-[200px]">
                                     <SelectValue placeholder="Darstellung auswählen" />
@@ -56,7 +56,7 @@ export default function HomePage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="xl:mt-4">
+                        <div className="xl:mt-4 xl:w-full flex-1">
                             <h3 className="font-semibold text-sm mb-2 xl:block hidden">Legende</h3>
                             <div className="flex flex-row flex-wrap gap-4">
                                 {Object.entries(currentConfig).map(([key, config]) => (

@@ -151,6 +151,8 @@ def get_all_esl() -> Dict[str, Any]:
     """
     with open(ESL_STORE, "r") as f:
         data = json.load(f)
+    # Sort by 'month' field ascending
+    data.sort(key=lambda x: x.get("month"))
     return {"esl-data": data}
 
 

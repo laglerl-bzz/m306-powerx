@@ -265,15 +265,18 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
   const getDataForTimespan = async (timespan: string) => {
     if (timespan === "day" || timespan === "month") {
       const sdatData = await fetchData(timespan);
-      console.log(sdatData)
 
       if (sdatData.length === 0) {
         return { data: [], config: sdatConfig as ChartConfig };
       }
 
       if (timespan === "day") {
-        // Find the latest timestamp in the data
-        const latestTimestamp = Math.max(...sdatData.map((d: any) => d.timestamp));
+        // Only process the last 5000 entries for performance
+        const sortedData = sdatData.sort((a: any, b: any) => b.timestamp - a.timestamp);
+        const recentData = sortedData.slice(0, 5000);
+
+        // Find the latest timestamp in the recent data
+        const latestTimestamp = Math.max(...recentData.map((d: any) => d.timestamp));
         const latestDate = new Date(latestTimestamp);
 
         const startOfLatestDay = new Date(
@@ -282,7 +285,7 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
           latestDate.getDate()
         );
 
-        const filteredData = sdatData.filter((d: any) => {
+        const filteredData = recentData.filter((d: any) => {
           const itemDate = new Date(d.timestamp);
           return itemDate.getTime() >= startOfLatestDay.getTime();
         });

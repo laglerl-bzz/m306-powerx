@@ -27,6 +27,7 @@ export default function HomePage() {
 
     const handleTimespanChange = (timespan: string) => {
         setCurrentTimespan(timespan)
+        setPreset("")
     }
 
     const handleConfigChange = (config: ChartConfig) => {
@@ -46,13 +47,23 @@ export default function HomePage() {
                                     <SelectValue placeholder="Darstellung auswählen" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value=" ">Standard</SelectItem>
-                                    <SelectItem value="purchaseHighTariff">Bezug Hochtarif</SelectItem>
-                                    <SelectItem value="purchaseLowTariff">Bezug Niedertarif</SelectItem>
-                                    <SelectItem value="feedInHighTariff">Einspeisung Hochtarif</SelectItem>
-                                    <SelectItem value="feedInLowTariff">Einspeisung Niedertarif</SelectItem>
-                                    <SelectItem value="purchase">Bezug</SelectItem>
-                                    <SelectItem value="feedIn">Einspeisung</SelectItem>
+                                  {Object.keys(currentConfig).includes('bezug') ? (
+                                    <>
+                                      <SelectItem value=" ">Standard</SelectItem>
+                                      <SelectItem value="purchase">Bezug</SelectItem>
+                                      <SelectItem value="feedIn">Einspeisung</SelectItem>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <SelectItem value=" ">Standard</SelectItem>
+                                      <SelectItem value="purchaseHighTariff">Bezug Hochtarif</SelectItem>
+                                      <SelectItem value="purchaseLowTariff">Bezug Niedertarif</SelectItem>
+                                      <SelectItem value="feedInHighTariff">Einspeisung Hochtarif</SelectItem>
+                                      <SelectItem value="feedInLowTariff">Einspeisung Niedertarif</SelectItem>
+                                      <SelectItem value="purchase">Bezug</SelectItem>
+                                      <SelectItem value="feedIn">Einspeisung</SelectItem>
+                                    </>
+                                  )}
                                 </SelectContent>
                             </Select>
                         </div>

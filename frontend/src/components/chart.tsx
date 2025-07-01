@@ -367,10 +367,20 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
       let filteredData = data
       let filteredConfig = config
       if (preset && presetKeyMap[preset]) {
-        const keys = presetKeyMap[preset]
+        let keys = presetKeyMap[preset]
+        // For ESL charts, expand 'purchase' and 'feedIn' to both tariffs
+        if (!isSDATData) {
+          if (preset === 'purchase') {
+            keys = ['1-1:1.8.1', '1-1:1.8.2']
+          } else if (preset === 'feedIn') {
+            keys = ['1-1:2.8.1', '1-1:2.8.2']
+          }
+        }
+        // Konfiguration auf ausgewählte Datenreihen begrenzen
         filteredConfig = Object.fromEntries(
           Object.entries(config).filter(([key]) => keys.includes(key))
         ) as typeof sdatConfig | typeof obisConfig
+        // Nur die relevanten Werte aus jedem Eintrag behalten
         filteredData = data.map(entry => {
           const newEntry: any = {}
           for (const key of ["month", "fullDate", "timestamp", "time", "totalReadings", ...keys]) {

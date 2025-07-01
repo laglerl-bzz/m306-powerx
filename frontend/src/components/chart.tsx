@@ -265,6 +265,7 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
   const getDataForTimespan = async (timespan: string) => {
     if (timespan === "day" || timespan === "month") {
       const sdatData = await fetchData(timespan);
+      console.log(sdatData)
 
       if (sdatData.length === 0) {
         return { data: [], config: sdatConfig as ChartConfig };
@@ -324,7 +325,6 @@ export function ChartComp({ preset = "", onTimespanChange, onConfigChange, class
         const diff = (currY - prevY) * 12 + (currM - prevM);
         if (diff !== 1) {
           consecutive = false;
-          console.log(i)
           break;
         }
       }
